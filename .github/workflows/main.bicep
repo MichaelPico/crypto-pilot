@@ -162,7 +162,7 @@ resource acsEmailDomain 'Microsoft.Communication/emailServices/domains@2023-03-3
   parent: emailService
   location: 'global'
   properties: {
-    domainManagement: 'MicrosoftManaged'
+    domainManagement: 'AzureManaged'
     userEngagementTracking: 'Disabled'
   }
 }
