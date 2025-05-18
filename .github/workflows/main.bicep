@@ -158,7 +158,7 @@ resource emailService 'Microsoft.Communication/emailServices@2023-03-31' = {
 
 // Add ACS Email Domain resource
 resource acsEmailDomain 'Microsoft.Communication/emailServices/domains@2023-03-31' = {
-  name: acsEmailDomainName
+  name: 'AzureManagedDomain'
   parent: emailService
   location: 'global'
   properties: {
