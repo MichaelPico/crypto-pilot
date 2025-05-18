@@ -38,6 +38,12 @@ jobs:
         run: |
           echo "FUNCTION_APP_NAME=$(jq -r '.properties.outputs.functionAppName.value' bicep_output.json)" >> $GITHUB_ENV
 
+      - name: Get SQL server and database names from Bicep output
+        id: get_sql_names
+        run: |
+          echo "SQL_SERVER_NAME=$(jq -r '.properties.outputs.sqlServerName.value' bicep_output.json)" >> $GITHUB_ENV
+          echo "SQL_DATABASE_NAME=$(jq -r '.properties.outputs.sqlDatabaseName.value' bicep_output.json)" >> $GITHUB_ENV
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -52,3 +58,17 @@ jobs:
         with:
           app-name: ${{ env.FUNCTION_APP_NAME }}
           package: ./publish_output
+
+      - name: Install sqlcmd
+        run: |
+          curl -sSL https://aka.ms/sqlcmd-linux -o sqlcmd-install.sh
+          bash sqlcmd-install.sh
+
+      - name: Deploy database schema
+        env:
+          SQL_SERVER: ${{ env.SQL_SERVER_NAME }}
+          SQL_DB: ${{ env.SQL_DATABASE_NAME }}
+          SQL_USER: ${{ secrets.SQL_ADMIN_LOGIN }}
+          SQL_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+        run: |
+          sqlcmd -S "$SQL_SERVER.database.windows.net" -d "$SQL_DB" -U "$SQL_USER" -P "$SQL_PASSWORD" -i "./Crypto.Pilot.Database/create-tables.sql"
