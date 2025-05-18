@@ -42,6 +42,10 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
           value: '~4'
         }
         {
+          name: 'FUNCTIONS_WORKER_RUNTIME_VERSION'
+          value: '~8'
+        }
+        {
           name: 'CoinGeckoOptions:BaseUrl'
           value: coinGeckoBaseUrl
         }
