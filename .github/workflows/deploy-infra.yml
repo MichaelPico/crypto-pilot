@@ -22,7 +22,30 @@ jobs:
           az group create --name crypto-pilot-rg-dev --location westeurope
 
       - name: Deploy Bicep
+        id: deploy_bicep
         run: |
           az deployment group create \
             --resource-group crypto-pilot-rg-dev \
-            --template-file .github/workflows/main.bicep
+            --template-file .github/workflows/main.bicep \
+            --output json > bicep_output.json
+        # Save output for next step
+
+      - name: Get function app name from Bicep output
+        id: get_funcapp_name
+        run: |
+          echo "FUNCTION_APP_NAME=$(jq -r '.properties.outputs.functionAppName.value' bicep_output.json)" >> $GITHUB_ENV
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish Azure Function
+        run: |
+          dotnet publish ./Crypto.Pylot.Functions/Crypto_Pylot_Functions.csproj -c Release -o ./publish_output
+
+      - name: Deploy to Azure Function App
+        uses: azure/functions-action@v1
+        with:
+          app-name: ${{ env.FUNCTION_APP_NAME }}
+          package: ./publish_output
