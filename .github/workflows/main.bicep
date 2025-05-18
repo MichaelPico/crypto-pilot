@@ -14,9 +14,6 @@ param sqlAdminPassword string
 @description('Name of the Azure Communication Service resource')
 param acsResourceName string = 'crypto-pilot-acs-sms-spain'
 
-@description('Location for the Azure Communication Service')
-param acsLocation string = 'westeurope'
-
 @description('Data location for the Azure Communication Service')
 param acsDataLocation string = 'Europe'
 
@@ -134,7 +131,7 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2022-02-01-preview' = {
 
 resource acs 'Microsoft.Communication/communicationServices@2024-09-01-preview' = {
   name: acsResourceName
-  location: acsLocation
+  location: 'global'
   properties: {
     dataLocation: acsDataLocation
   }
