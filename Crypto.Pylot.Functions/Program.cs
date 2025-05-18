@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Crypto.Pylot.Functions.Models.Options;  
+using Crypto.Pylot.Functions.Helpers;  
 
 namespace Crypto.Pylot.Functions;
 
@@ -26,6 +27,15 @@ internal class Program
                 {
                     configuration.GetSection("CoinGeckoOptions").Bind(settings);
                 });
+
+                services.AddOptions<CryptoPilotDatabaseOptions>()
+                    .Configure<IConfiguration>((settings, configuration) =>
+                    {
+                        configuration.Bind("CryptoPilotDatabase", settings);
+                    });
+
+                services.AddSingleton<DatabaseHelper>();
+
                 services.AddLogging();
             })
             .Build();

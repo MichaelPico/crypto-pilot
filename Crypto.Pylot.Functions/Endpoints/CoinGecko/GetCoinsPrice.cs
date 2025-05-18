@@ -20,7 +20,7 @@ namespace Crypto.Pylot.Functions.Endpoints
         public readonly CoinGeckoOptions coinGeckoOptions = coinGeckoOptions.Value;
 
         [Function("GetCoinsPrice")]
-        [OpenApiOperation(operationId: "GetCoinsPrice", tags: new[] { "price" }, Summary = "Get coin prices", Description = "Gets prices for specified coins from CoinGecko.")]
+        [OpenApiOperation(operationId: "GetCoinsPrice", tags: new[] { "Price" }, Summary = "Get coin prices", Description = "Gets prices for specified coins from CoinGecko.")]
         [OpenApiParameter(name: "vs_currencies", In = ParameterLocation.Query, Required = false, Type = typeof(string), Summary = "Comma-separated list of vs currencies", Description = "e.g. eur,usd")]
         [OpenApiParameter(name: "ids", In = ParameterLocation.Query, Required = false, Type = typeof(string), Summary = "Comma-separated list of coin ids", Description = "e.g. bitcoin,solana")]
         [OpenApiParameter(name: "include_market_cap", In = ParameterLocation.Query, Required = false, Type = typeof(bool), Summary = "Include market cap", Description = "true/false")]
