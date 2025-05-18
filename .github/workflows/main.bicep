@@ -11,6 +11,15 @@ param sqlAdminLogin string
 @secure()
 param sqlAdminPassword string
 
+@description('Name of the Azure Communication Service resource')
+param acsResourceName string = 'crypto-pilot-acs-sms-spain'
+
+@description('Location for the Azure Communication Service')
+param acsLocation string = 'westeurope'
+
+@description('Data location for the Azure Communication Service')
+param acsDataLocation string = 'Europe'
+
 resource storage 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: uniqueString(resourceGroup().id, functionAppName)
   location: location
@@ -84,6 +93,10 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'WEBSITE_BITNESS'
           value: '64'
         }
+        {
+          name: 'ACS_CONNECTION_STRING'
+          value: acs.listKeys().primaryConnectionString
+        }
       ]
     }
     httpsOnly: true
@@ -119,7 +132,19 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2022-02-01-preview' = {
   ]
 }
 
+resource acs 'Microsoft.Communication/communicationServices@2024-09-01-preview' = {
+  name: acsResourceName
+  location: acsLocation
+  properties: {
+    dataLocation: acsDataLocation
+  }
+}
+
 output functionAppName string = functionApp.name
 output coinGeckoBaseUrl string = coinGeckoBaseUrl
 output sqlServerName string = sqlServer.name
 output sqlDatabaseName string = sqlDatabase.name
+output acsResourceName string = acs.name
+output acsLocation string = acs.location
+output acsDataLocation string = acs.properties.dataLocation
+output acsConnectionString string = acs.listKeys().primaryConnectionString
