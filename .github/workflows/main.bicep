@@ -38,6 +38,10 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
           value: 'dotnet-isolated'
         }
         {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
           name: 'CoinGeckoOptions:BaseUrl'
           value: coinGeckoBaseUrl
         }
