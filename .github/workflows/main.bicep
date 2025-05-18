@@ -1,6 +1,6 @@
 param functionAppName string = 'crypto-pilot-functionapp'
 param coinGeckoBaseUrl string = 'https://api.coingecko.com/api/v3'
-param location string = resourceGroup().location
+param location string = 'uksouth'
 
 param sqlServerAppName string = 'crypto-pilot-sql-server'
 param sqlDatabaseName string = 'crypto-pilot-sql-database'
@@ -37,7 +37,6 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   properties: {
     Application_Type: 'web'
     Flow_Type: 'Bluefield'
-    WorkspaceResourceId: ''
   }
 }
 

@@ -19,7 +19,7 @@ jobs:
 
       - name: Create resource group if not exists
         run: |
-          az group create --name crypto-pilot-rg-dev --location westeurope
+          az group create --name crypto-pilot-rg-dev --location uksouth
 
       - name: Deploy Bicep
         id: deploy_bicep
