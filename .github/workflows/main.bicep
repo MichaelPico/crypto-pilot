@@ -148,14 +148,14 @@ resource acs 'Microsoft.Communication/communicationServices@2024-09-01-preview' 
   }
 }
 
-resource emailService 'Microsoft.Communication/emailServices@2023-03-31-preview' = {
+resource emailService 'Microsoft.Communication/emailServices@2023-03-31' = {
   name: '${acsResourceName}-email'
   location: 'global'
   properties: {}
 }
 
 // Add ACS Email Domain resource
-resource acsEmailDomain 'Microsoft.Communication/emailServices/domains@2023-03-31-preview' = {
+resource acsEmailDomain 'Microsoft.Communication/emailServices/domains@2023-03-31' = {
   name: acsEmailDomainName
   parent: emailService
   location: 'global'
