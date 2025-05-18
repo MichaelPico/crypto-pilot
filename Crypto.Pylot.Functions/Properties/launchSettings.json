@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Crypto_Pylot_Functions": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7192",
+      "launchBrowser": false
+    }
+  }
+}
