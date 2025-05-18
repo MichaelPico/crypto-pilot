@@ -59,14 +59,22 @@ jobs:
           app-name: ${{ env.FUNCTION_APP_NAME }}
           package: ./publish_output
 
-      - name: Install sqlcmd
+      - name: Check if sqlcmd is installed
+        id: check-sqlcmd
+        shell: pwsh
         run: |
-          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-          sudo apt-add-repository "$(curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list)"
+          Set-GitHubOutput 'available' ($null -ne (Get-Command sqlcmd -ErrorAction SilentlyContinue))
+
+      - name: Install sqlcmd on Linux
+        if: runner.os == 'Linux' && steps.check-sqlcmd.outputs.available != 'true'
+        shell: bash
+        run: |
+          curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
           sudo apt-get update
-          sudo apt-get install -y mssql-tools unixodbc-dev
-          echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
-          export PATH="$PATH:/opt/mssql-tools/bin"
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 mssql-tools18
+          echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bashrc
+          source ~/.bashrc
+          echo '/opt/mssql-tools18/bin' >> $GITHUB_PATH
 
       - name: Deploy database schema
         env:
