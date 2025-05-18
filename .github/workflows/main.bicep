@@ -50,7 +50,7 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
       appSettings: [
         {
           name: 'AzureWebJobsStorage'
-          value: storage.listKeys().keys[0].value // Use connection string, not blob endpoint
+          value: 'DefaultEndpointsProtocol=https;EndpointSuffix=${environment().suffixes.storage};AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value}'
         }
         {
           name: 'FUNCTIONS_WORKER_RUNTIME'
@@ -79,6 +79,10 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
         {
           name: 'ApplicationInsightsAgent_EXTENSION_VERSION'
           value: '~3'
+        }
+        {
+          name: 'WEBSITE_BITNESS'
+          value: '64'
         }
       ]
     }
