@@ -1,0 +1,28 @@
+name: Deploy Azure Function App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create resource group if not exists
+        run: |
+          az group create --name crypto-pilot-rg-dev --location westeurope
+
+      - name: Deploy Bicep
+        run: |
+          az deployment group create \
+            --resource-group crypto-pilot-rg-dev \
+            --template-file ./Deployment/main.bicep
