@@ -25,4 +25,4 @@ jobs:
         run: |
           az deployment group create \
             --resource-group crypto-pilot-rg-dev \
-            --template-file ./Deployment/main.bicep
+            --template-file ./Crypto.Pylot.Functions/Deployment/main.bicep
