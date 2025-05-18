@@ -17,6 +17,9 @@ param acsResourceName string = 'crypto-pilot-acs-sms-spain'
 @description('Data location for the Azure Communication Service')
 param acsDataLocation string = 'Europe'
 
+@description('Name of the ACS Email Domain resource')
+param acsEmailDomainName string = 'crypto-pilot-email-domain'
+
 resource storage 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: uniqueString(resourceGroup().id, functionAppName)
   location: location
@@ -94,6 +97,14 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'ACS_CONNECTION_STRING'
           value: acs.listKeys().primaryConnectionString
         }
+        {
+          name: 'EMAIL_SENDER_ADDRESS'
+          value: 'DoNotReply@crypto-pilot.email'
+        }
+        {
+          name: 'EMAIL_DOMAIN_RESOURCE_ID'
+          value: acsEmailDomain.id
+        }
       ]
     }
     httpsOnly: true
@@ -137,6 +148,23 @@ resource acs 'Microsoft.Communication/communicationServices@2024-09-01-preview' 
   }
 }
 
+resource emailService 'Microsoft.Communication/emailServices@2023-03-31-preview' = {
+  name: '${acsResourceName}-email'
+  location: 'global'
+  properties: {}
+}
+
+// Add ACS Email Domain resource
+resource acsEmailDomain 'Microsoft.Communication/emailServices/domains@2023-03-31-preview' = {
+  name: acsEmailDomainName
+  parent: emailService
+  location: 'global'
+  properties: {
+    domainManagement: 'MicrosoftManaged'
+    userEngagementTracking: 'Disabled'
+  }
+}
+
 output functionAppName string = functionApp.name
 output coinGeckoBaseUrl string = coinGeckoBaseUrl
 output sqlServerName string = sqlServer.name
@@ -145,3 +173,6 @@ output acsResourceName string = acs.name
 output acsLocation string = acs.location
 output acsDataLocation string = acs.properties.dataLocation
 output acsConnectionString string = acs.listKeys().primaryConnectionString
+output acsEmailDomainName string = acsEmailDomain.name
+output acsEmailDomainResourceId string = acsEmailDomain.id
+output emailSenderAddress string = 'DoNotReply@crypto-pilot.email'
