@@ -222,5 +222,5 @@ output acsEmailDomainResourceId string = acsEmailDomain.id
 output emailSenderAddress string = 'DoNotReply@${acsEmailDomain.properties.fromSenderDomain}'
 output functionAppClientId string = functionAppClientId
 output webAppClientId string = webAppClientId
-output staticWebAppDeploymentToken string = listStaticSiteSecrets(webAppName, '2022-03-01').properties.apiKey
+output staticWebAppDeploymentToken string = staticWebApp.listStaticSiteSecrets().properties.apiKey
 output webAppName string = staticWebApp.name
