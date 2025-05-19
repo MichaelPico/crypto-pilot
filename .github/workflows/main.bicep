@@ -168,10 +168,6 @@ resource webApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
           value: 'true'
         }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
       ]
     }
     httpsOnly: true
