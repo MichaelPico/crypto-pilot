@@ -162,6 +162,7 @@ resource webApp 'Microsoft.Web/sites@2022-09-01' = {
     serverFarmId: webAppPlan.id
     siteConfig: {
       linuxFxVersion: 'NODE|20-lts'
+      // Only basic settings here, environment-specific settings come from pipeline
       appSettings: [
         {
           name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
@@ -170,18 +171,6 @@ resource webApp 'Microsoft.Web/sites@2022-09-01' = {
         {
           name: 'WEBSITE_RUN_FROM_PACKAGE'
           value: '1'
-        }
-        {
-          name: 'VITE_AZURE_AD_AUTHORITY'
-          value: 'https://${environment().authentication.loginEndpoint}${tenant().tenantId}'
-        }
-        {
-          name: 'VITE_AZURE_AD_CLIENT_ID'
-          value: webAppClientId
-        }
-        {
-          name: 'VITE_AZURE_FUNCTION_API_SCOPE'
-          value: 'api://${functionAppClientId}/user_impersonation'
         }
       ]
     }

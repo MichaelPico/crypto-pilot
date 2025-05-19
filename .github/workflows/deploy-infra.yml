@@ -152,6 +152,15 @@ jobs:
           sqlcmd -S "$SQL_SERVER.database.windows.net" -d "$SQL_DB" -U "$SQL_USER" -P "$SQL_PASSWORD" -i "./Crypto.Pilot.Database/create-tables.sql"
 
       # --- Begin: Deploy Crypto.Pilot.Web as Azure Web App (App Service) ---
+      - name: Set Authentication Variables
+        run: |
+          TENANT_ID=$(az account show --query tenantId -o tsv)
+          AUTHORITY_URL="https://login.microsoftonline.com/$TENANT_ID"
+          API_SCOPE="api://${{ env.FUNCTION_APP_CLIENT_ID }}/user_impersonation"
+          echo "VITE_AZURE_AD_AUTHORITY=$AUTHORITY_URL" >> $GITHUB_ENV
+          echo "VITE_AZURE_AD_CLIENT_ID=${{ env.WEB_APP_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "VITE_AZURE_FUNCTION_API_SCOPE=$API_SCOPE" >> $GITHUB_ENV
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -171,8 +180,13 @@ jobs:
         working-directory: ./Crypto.Pilot.Web
         run: npm ci
 
+      # Build with environment variables
       - name: Build React app
         working-directory: ./Crypto.Pilot.Web
+        env:
+          VITE_AZURE_AD_AUTHORITY: ${{ env.VITE_AZURE_AD_AUTHORITY }}
+          VITE_AZURE_AD_CLIENT_ID: ${{ env.VITE_AZURE_AD_CLIENT_ID }}
+          VITE_AZURE_FUNCTION_API_SCOPE: ${{ env.VITE_AZURE_FUNCTION_API_SCOPE }}
         run: npm run build
 
       - name: Zip web build output
@@ -181,20 +195,30 @@ jobs:
           zip -r ../../webapp.zip .
           cd ../..
 
+      - name: Get Web App Publish Profile
+        id: get-publish-profile
+        run: |
+          PUBLISH_PROFILE=$(az webapp deployment list-publishing-profiles \
+            --resource-group crypto-pilot-rg-dev \
+            --name ${{ env.WEBAPP_NAME }} \
+            --xml --output tsv)
+          echo "WEBAPP_PUBLISH_PROFILE=$PUBLISH_PROFILE" >> $GITHUB_ENV
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          publish-profile: ${{ env.WEBAPP_PUBLISH_PROFILE }}
           package: ./webapp.zip
 
-      - name: Set Web App environment variables for frontend auth
+      # Also set the variables in the Web App for runtime
+      - name: Configure Web App Settings
         run: |
           az webapp config appsettings set \
             --resource-group crypto-pilot-rg-dev \
             --name ${{ env.WEBAPP_NAME }} \
             --settings \
-              VITE_AZURE_FUNCTION_API_SCOPE='${{ secrets.VITE_AZURE_FUNCTION_API_SCOPE }}' \
-              VITE_AZURE_AD_AUTHORITY='${{ secrets.VITE_AZURE_AD_AUTHORITY }}' \
-              VITE_AZURE_AD_CLIENT_ID='${{ secrets.VITE_AZURE_AD_CLIENT_ID }}'
+              VITE_AZURE_AD_AUTHORITY="${{ env.VITE_AZURE_AD_AUTHORITY }}" \
+              VITE_AZURE_AD_CLIENT_ID="${{ env.VITE_AZURE_AD_CLIENT_ID }}" \
+              VITE_AZURE_FUNCTION_API_SCOPE="${{ env.VITE_AZURE_FUNCTION_API_SCOPE }}"
       # --- End: Deploy Crypto.Pilot.Web as Azure Web App (App Service) ---
