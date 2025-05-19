@@ -11,14 +11,22 @@ using System.Collections.Generic;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.OpenApi.Models;
 using System.Net;
+using Crypto.Pylot.Functions.Helpers;
+using System.Threading.Tasks;
 
 
 namespace Crypto.Pylot.Functions.Endpoints
 {
-    public class GetCoinsFunction(ILogger<GetCoinsFunction> logger, IOptions<CoinGeckoOptions> coinGeckoOptions)
+    public class GetCoinsFunction
     {
-        private readonly ILogger<GetCoinsFunction> _logger = logger;
-        public readonly CoinGeckoOptions coinGeckoOptions = coinGeckoOptions.Value;
+        private readonly ILogger<GetCoinsFunction> _logger;
+        private readonly CoinGeckoHelper _coinGeckoHelper;
+
+        public GetCoinsFunction(ILogger<GetCoinsFunction> logger, CoinGeckoHelper coinGeckoHelper)
+        {
+            _logger = logger;
+            _coinGeckoHelper = coinGeckoHelper;
+        }
 
         /// <summary>
         /// Gets the list of all coins from CoinGecko.
@@ -30,24 +38,19 @@ namespace Crypto.Pylot.Functions.Endpoints
         [OpenApiOperation(operationId: "GetCoins", tags: new[] { "Coins" }, Summary = "Get all coins", Description = "Returns a list of all coins from CoinGecko.")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(List<Crypto.Pylot.Functions.Models.CoinGeckoCoin>), Summary = "List of coins", Description = "A list of all coins.")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "application/json", bodyType: typeof(string), Summary = "Bad request", Description = "Error fetching data from CoinGecko API.")]
-        public IActionResult Run([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequest req)
+        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequest req)
         {
             _logger.LogInformation("Get Coins Function HTTP trigger function processed a request.");
 
-            var listCoinsUrl = $"{coinGeckoOptions.BaseUrl}/coins/list";
-
-            var client = new HttpClient();
-            var response = client.GetAsync(listCoinsUrl).Result;
-
-            if (!response.IsSuccessStatusCode)
+            try
+            {
+                var coinsList = await _coinGeckoHelper.GetCoinsAsync();
+                return new OkObjectResult(coinsList);
+            }
+            catch
             {
                 return new BadRequestObjectResult("Error fetching data from CoinGecko API.");
             }
-
-            var responseContent = response.Content.ReadAsStringAsync().Result;
-            var coinsList = JsonSerializer.Deserialize<List<CoinGeckoCoin>>(responseContent);
-
-            return new OkObjectResult(coinsList);
         }
     }
 }

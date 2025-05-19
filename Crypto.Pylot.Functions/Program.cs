@@ -42,6 +42,7 @@ internal class Program
 
                 services.AddSingleton<DatabaseHelper>();
                 services.AddSingleton<EmailServiceHelper>();
+                services.AddSingleton<CoinGeckoHelper>();
 
                 services.AddLogging();
             })

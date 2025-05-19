@@ -11,13 +11,20 @@ using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.OpenApi.Models;
 using System.Net;
+using Crypto.Pylot.Functions.Helpers;
 
 namespace Crypto.Pylot.Functions.Endpoints
 {
-    public class GetCoinsPrice(ILogger<GetCoinsPrice> logger, IOptions<CoinGeckoOptions> coinGeckoOptions)
+    public class GetCoinsPrice
     {
-        private readonly ILogger<GetCoinsPrice> _logger = logger;
-        public readonly CoinGeckoOptions coinGeckoOptions = coinGeckoOptions.Value;
+        private readonly ILogger<GetCoinsPrice> _logger;
+        private readonly CoinGeckoHelper _coinGeckoHelper;
+
+        public GetCoinsPrice(ILogger<GetCoinsPrice> logger, CoinGeckoHelper coinGeckoHelper)
+        {
+            _logger = logger;
+            _coinGeckoHelper = coinGeckoHelper;
+        }
 
         [Function("GetCoinsPrice")]
         [OpenApiOperation(operationId: "GetCoinsPrice", tags: new[] { "Price" }, Summary = "Get coin prices", Description = "Gets prices for specified coins from CoinGecko.")]
@@ -34,7 +41,6 @@ namespace Crypto.Pylot.Functions.Endpoints
         {
             _logger.LogInformation("Get Coins Price Function HTTP trigger function processed a request.");
 
-            // Default values
             string vsCurrencies = req.Query["vs_currencies"];
             if (string.IsNullOrWhiteSpace(vsCurrencies)) vsCurrencies = "eur";
 
@@ -47,27 +53,17 @@ namespace Crypto.Pylot.Functions.Endpoints
             bool includeLastUpdatedAt = bool.TryParse(req.Query["include_last_updated_at"], out var ilua) ? ilua : false;
             int precision = int.TryParse(req.Query["precision"], out var p) ? p : 2;
 
-            var url = $"{coinGeckoOptions.BaseUrl}/simple/price" +
-                $"?vs_currencies={vsCurrencies}" +
-                $"&ids={ids}" +
-                $"&include_market_cap={includeMarketCap.ToString().ToLower()}" +
-                $"&include_24hr_vol={include24hrVol.ToString().ToLower()}" +
-                $"&include_24hr_change={include24hrChange.ToString().ToLower()}" +
-                $"&include_last_updated_at={includeLastUpdatedAt.ToString().ToLower()}" +
-                $"&precision={precision}";
-
-            var client = new HttpClient();
-            var response = await client.GetAsync(url);
-
-            if (!response.IsSuccessStatusCode)
+            try
+            {
+                var priceData = await _coinGeckoHelper.GetPricesAsync(
+                    vsCurrencies, ids, includeMarketCap, include24hrVol, include24hrChange, includeLastUpdatedAt, precision
+                );
+                return new OkObjectResult(priceData);
+            }
+            catch
             {
                 return new BadRequestObjectResult("Error fetching data from CoinGecko API.");
             }
-
-            var responseContent = await response.Content.ReadAsStringAsync();
-            var priceData = JsonSerializer.Deserialize<Dictionary<string, object>>(responseContent);
-
-            return new OkObjectResult(priceData);
         }
     }
 }
