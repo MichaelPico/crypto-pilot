@@ -32,12 +32,16 @@ jobs:
               sqlAdminPassword='${{ secrets.SQL_ADMIN_PASSWORD }}' \
               acsEmailDomainName='crypto-pilot-email-domain' \
             --output json > bicep_output.json
-        # Save output for next step
 
       - name: Get function app name from Bicep output
         id: get_funcapp_name
         run: |
           echo "FUNCTION_APP_NAME=$(jq -r '.properties.outputs.functionAppName.value' bicep_output.json)" >> $GITHUB_ENV
+
+      - name: Get web app name from Bicep output
+        id: get_webapp_name
+        run: |
+          echo "WEBAPP_NAME=$(jq -r '.properties.outputs.webAppName.value' bicep_output.json)" >> $GITHUB_ENV
 
       - name: Get SQL server and database names from Bicep output
         id: get_sql_names
@@ -107,3 +111,31 @@ jobs:
           SQL_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
         run: |
           sqlcmd -S "$SQL_SERVER.database.windows.net" -d "$SQL_DB" -U "$SQL_USER" -P "$SQL_PASSWORD" -i "./Crypto.Pilot.Database/create-tables.sql"
+
+      # --- Begin: Deploy Crypto.Pilot.Web as Azure Web App (App Service) ---
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies (web)
+        working-directory: ./Crypto.Pilot.Web
+        run: npm ci
+
+      - name: Build React app
+        working-directory: ./Crypto.Pilot.Web
+        run: npm run build
+
+      - name: Zip web build output
+        run: |
+          cd ./Crypto.Pilot.Web/dist
+          zip -r ../../webapp.zip .
+          cd ../..
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./webapp.zip
+      # --- End: Deploy Crypto.Pilot.Web as Azure Web App (App Service) ---

@@ -20,6 +20,12 @@ param acsDataLocation string = 'Europe'
 @description('Name of the ACS Email Domain resource')
 param acsEmailDomainName string = 'crypto-pilot-email-domain'
 
+@description('Name of the App Service plan for the web app')
+param webAppPlanName string = 'crypto-pilot-web-plan'
+
+@description('Name of the Web App for the frontend')
+param webAppName string = 'crypto-pilot-webapp'
+
 resource storage 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: uniqueString(resourceGroup().id, functionAppName)
   location: location
@@ -183,6 +189,48 @@ resource acsEmailDomain 'Microsoft.Communication/emailServices/domains@2023-03-3
   }
 }
 
+// App Service plan for the web app (Standard Linux for static SPA hosting)
+resource webAppPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
+  name: webAppPlanName
+  location: location
+  sku: {
+    name: 'B1'
+    tier: 'Basic'
+  }
+  kind: 'linux'
+  properties: {
+    reserved: true
+  }
+}
+
+// Web App for React frontend
+resource webApp 'Microsoft.Web/sites@2022-09-01' = {
+  name: webAppName
+  location: location
+  kind: 'app,linux'
+  properties: {
+    serverFarmId: webAppPlan.id
+    siteConfig: {
+      linuxFxVersion: 'NODE|20-lts'
+      appSettings: [
+        {
+          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
+          value: 'true'
+        }
+        {
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
+        }
+        // Add any additional app settings needed for your frontend here
+      ]
+    }
+    httpsOnly: true
+  }
+  dependsOn: [
+    webAppPlan
+  ]
+}
+
 output functionAppName string = functionApp.name
 output coinGeckoBaseUrl string = coinGeckoBaseUrl
 output sqlServerName string = sqlServer.name
@@ -194,3 +242,4 @@ output acsConnectionString string = acs.listKeys().primaryConnectionString
 output acsEmailDomainName string = acsEmailDomain.name
 output acsEmailDomainResourceId string = acsEmailDomain.id
 output emailSenderAddress string = 'DoNotReply@${acsEmailDomain.properties.fromSenderDomain}'
+output webAppName string = webApp.name
