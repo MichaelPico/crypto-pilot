@@ -17,24 +17,40 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Create resource group if not exists
+      - name: Check and Create Resource Group
         run: |
-          az group create --name crypto-pilot-rg-dev --location uksouth
+          if ! az group exists --name crypto-pilot-rg-dev; then
+            az group create --name crypto-pilot-rg-dev --location uksouth
+          else
+            echo "Resource group crypto-pilot-rg-dev already exists"
+          fi
 
-      - name: Create Function App AAD registration
+      - name: Check and Create Function App AAD registration
         run: |
-          FUNC_APP_ID=$(az ad app create --display-name "${{ env.FUNCTION_APP_NAME }}" \
-            --sign-in-audience AzureADMyOrg \
-            --app-roles '[{"allowedMemberTypes":["User"],"description":"User","displayName":"User","id":"'$(uuidgen)'","isEnabled":true,"value":"User"}]' \
-            --query appId -o tsv)
+          EXISTING_FUNC_APP=$(az ad app list --display-name "crypto-pilot-functionapp" --query "[0].appId" -o tsv)
+          if [ -z "$EXISTING_FUNC_APP" ]; then
+            FUNC_APP_ID=$(az ad app create --display-name "crypto-pilot-functionapp" \
+              --sign-in-audience AzureADMyOrg \
+              --app-roles '[{"allowedMemberTypes":["User"],"description":"User","displayName":"User","id":"'$(uuidgen)'","isEnabled":true,"value":"User"}]' \
+              --query appId -o tsv)
+          else
+            FUNC_APP_ID=$EXISTING_FUNC_APP
+            echo "Function app registration already exists"
+          fi
           echo "FUNCTION_APP_CLIENT_ID=$FUNC_APP_ID" >> $GITHUB_ENV
 
-      - name: Create Web App AAD registration
+      - name: Check and Create Web App AAD registration
         run: |
-          WEB_APP_ID=$(az ad app create --display-name "${{ env.WEBAPP_NAME }}" \
-            --sign-in-audience AzureADMyOrg \
-            --spa-redirect-uris "http://localhost:5173" \
-            --query appId -o tsv)
+          EXISTING_WEB_APP=$(az ad app list --display-name "crypto-pilot-webapp" --query "[0].appId" -o tsv)
+          if [ -z "$EXISTING_WEB_APP" ]; then
+            WEB_APP_ID=$(az ad app create --display-name "crypto-pilot-webapp" \
+              --sign-in-audience AzureADMyOrg \
+              --spa-redirect-uris "http://localhost:5173" \
+              --query appId -o tsv)
+          else
+            WEB_APP_ID=$EXISTING_WEB_APP
+            echo "Web app registration already exists"
+          fi
           echo "WEB_APP_CLIENT_ID=$WEB_APP_ID" >> $GITHUB_ENV
 
       - name: Deploy Bicep
