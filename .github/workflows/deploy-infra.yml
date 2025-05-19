@@ -244,7 +244,7 @@ jobs:
             --query "principalId" -o tsv)
           az role assignment create \
             --assignee $WEB_APP_PRINCIPAL_ID \
-            --role "Azure Function App Contributor" \
+            --role "Contributor" \
             --scope $(az functionapp show \
               --name "${{ env.FUNCTION_APP_NAME }}" \
               --resource-group "crypto-pilot-rg-dev" \
