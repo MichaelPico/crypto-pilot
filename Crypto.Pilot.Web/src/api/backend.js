@@ -11,10 +11,23 @@ const apiScope = import.meta.env.VITE_AZURE_FUNCTION_API_SCOPE; // e.g. api://<f
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
-// Ensure MSAL is initialized before using it
-await msalInstance.initialize();
+let msalInitialized = false;
+
+async function initializeMsal() {
+  if (!msalInitialized) {
+    try {
+      await msalInstance.initialize();
+      msalInitialized = true;
+    } catch (error) {
+      console.error('Failed to initialize MSAL:', error);
+      throw error;
+    }
+  }
+}
 
 async function getAccessToken() {
+  await initializeMsal(); // Ensure MSAL is initialized before proceeding
+
   const accounts = msalInstance.getAllAccounts();
   if (accounts.length === 0) {
     await msalInstance.loginPopup({ scopes: [apiScope] });

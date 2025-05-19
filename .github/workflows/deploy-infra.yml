@@ -229,3 +229,35 @@ jobs:
           output_location: 'dist'
           skip_api_build: true
           action: 'upload'
+
+      - name: Enable Managed Identity for Web App
+        run: |
+          az webapp identity assign \
+            --name "crypto-pilot-webapp" \
+            --resource-group "crypto-pilot-rg-dev"
+
+      - name: Assign Role to Web App Managed Identity
+        run: |
+          WEB_APP_PRINCIPAL_ID=$(az webapp identity show \
+            --name "crypto-pilot-webapp" \
+            --resource-group "crypto-pilot-rg-dev" \
+            --query "principalId" -o tsv)
+          az role assignment create \
+            --assignee $WEB_APP_PRINCIPAL_ID \
+            --role "Azure Function App Contributor" \
+            --scope $(az functionapp show \
+              --name "${{ env.FUNCTION_APP_NAME }}" \
+              --resource-group "crypto-pilot-rg-dev" \
+              --query "id" -o tsv)
+
+      - name: Configure Azure Function App Authentication
+        run: |
+          TENANT_ID=$(az account show --query tenantId -o tsv)
+          az webapp auth update \
+            --name "${{ env.FUNCTION_APP_NAME }}" \
+            --resource-group "crypto-pilot-rg-dev" \
+            --enabled true \
+            --action LoginWithAzureActiveDirectory \
+            --aad-claims-principal-id-enabled true \
+            --aad-token-issuer-url "https://login.microsoftonline.com/$TENANT_ID/v2.0" \
+            --aad-client-id "${{ env.FUNCTION_APP_CLIENT_ID }}"
