@@ -203,6 +203,44 @@ resource webAppPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   }
 }
 
+// Azure AD application for the Function App
+resource functionAppAadApp 'Microsoft.AzureActiveDirectory/applications@2023-01-01' = {
+  name: '${functionAppName}-aad'
+  properties: {
+    displayName: functionAppName
+    signInAudience: 'AzureADMyOrg'
+    api: {
+      oauth2PermissionScopes: [
+        {
+          adminConsentDescription: 'Allow the application to access the API on behalf of the signed-in user'
+          adminConsentDisplayName: 'Access API'
+          id: guid('${resourceGroup().id}-api-access')
+          isEnabled: true
+          type: 'User'
+          userConsentDescription: 'Allow the application to access the API on your behalf'
+          userConsentDisplayName: 'Access API'
+          value: 'user_impersonation'
+        }
+      ]
+    }
+  }
+}
+
+// Azure AD application for the Web App
+resource webAppAadApp 'Microsoft.AzureActiveDirectory/applications@2023-01-01' = {
+  name: '${webAppName}-aad'
+  properties: {
+    displayName: webAppName
+    signInAudience: 'AzureADMyOrg'
+    spa: {
+      redirectUris: [
+        'https://${webApp.properties.defaultHostName}'
+        'http://localhost:5173' // Development URL
+      ]
+    }
+  }
+}
+
 // Web App for React frontend
 resource webApp 'Microsoft.Web/sites@2022-09-01' = {
   name: webAppName
@@ -221,14 +259,22 @@ resource webApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'WEBSITE_RUN_FROM_PACKAGE'
           value: '1'
         }
-        // Add any additional app settings needed for your frontend here
       ]
     }
     httpsOnly: true
   }
-  dependsOn: [
-    webAppPlan
-  ]
+}
+
+resource webAppSettings 'Microsoft.Web/sites/config@2022-09-01' = {
+  parent: webApp
+  name: 'appsettings'
+  properties: {
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'true'
+    WEBSITE_RUN_FROM_PACKAGE: '1'
+    VITE_AZURE_AD_AUTHORITY: 'https://login.microsoftonline.com/${tenant().tenantId}'
+    VITE_AZURE_AD_CLIENT_ID: webAppAadApp.properties.appId
+    VITE_AZURE_FUNCTION_API_SCOPE: 'api://${functionAppAadApp.properties.appId}/user_impersonation'
+  }
 }
 
 output functionAppName string = functionApp.name
@@ -243,3 +289,5 @@ output acsEmailDomainName string = acsEmailDomain.name
 output acsEmailDomainResourceId string = acsEmailDomain.id
 output emailSenderAddress string = 'DoNotReply@${acsEmailDomain.properties.fromSenderDomain}'
 output webAppName string = webApp.name
+output functionAppClientId string = functionAppAadApp.properties.appId
+output webAppClientId string = webAppAadApp.properties.appId
