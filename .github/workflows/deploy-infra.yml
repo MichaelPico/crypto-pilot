@@ -21,6 +21,22 @@ jobs:
         run: |
           az group create --name crypto-pilot-rg-dev --location uksouth
 
+      - name: Create Function App AAD registration
+        run: |
+          FUNC_APP_ID=$(az ad app create --display-name "${{ env.FUNCTION_APP_NAME }}" \
+            --sign-in-audience AzureADMyOrg \
+            --app-roles '[{"allowedMemberTypes":["User"],"description":"User","displayName":"User","id":"'$(uuidgen)'","isEnabled":true,"value":"User"}]' \
+            --query appId -o tsv)
+          echo "FUNCTION_APP_CLIENT_ID=$FUNC_APP_ID" >> $GITHUB_ENV
+
+      - name: Create Web App AAD registration
+        run: |
+          WEB_APP_ID=$(az ad app create --display-name "${{ env.WEBAPP_NAME }}" \
+            --sign-in-audience AzureADMyOrg \
+            --spa-redirect-uris "http://localhost:5173" \
+            --query appId -o tsv)
+          echo "WEB_APP_CLIENT_ID=$WEB_APP_ID" >> $GITHUB_ENV
+
       - name: Deploy Bicep
         id: deploy_bicep
         run: |
@@ -31,6 +47,8 @@ jobs:
               sqlAdminLogin='${{ secrets.SQL_ADMIN_LOGIN }}' \
               sqlAdminPassword='${{ secrets.SQL_ADMIN_PASSWORD }}' \
               acsEmailDomainName='crypto-pilot-email-domain' \
+              functionAppClientId='${{ env.FUNCTION_APP_CLIENT_ID }}' \
+              webAppClientId='${{ env.WEB_APP_CLIENT_ID }}' \
             --output json > bicep_output.json
 
       - name: Get function app name from Bicep output
