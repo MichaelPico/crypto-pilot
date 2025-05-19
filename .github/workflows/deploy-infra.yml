@@ -77,7 +77,12 @@ jobs:
       - name: Get web app name from Bicep output
         id: get_webapp_name
         run: |
-          echo "WEBAPP_NAME=$(jq -r '.properties.outputs.webAppName.value' bicep_output.json)" >> $GITHUB_ENV
+          WEBAPP_NAME=$(jq -r '.properties.outputs.webAppName.value' bicep_output.json)
+          if [ -z "$WEBAPP_NAME" ]; then
+            echo "Error: WEBAPP_NAME is not set. Check Bicep output."
+            exit 1
+          fi
+          echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
 
       - name: Get SQL server and database names from Bicep output
         id: get_sql_names
@@ -198,6 +203,10 @@ jobs:
       - name: Get Web App Publish Profile
         id: get-publish-profile
         run: |
+          if [ -z "${{ env.WEBAPP_NAME }}" ]; then
+            echo "Error: WEBAPP_NAME is not set. Cannot retrieve publish profile."
+            exit 1
+          fi
           PUBLISH_PROFILE=$(az webapp deployment list-publishing-profiles \
             --resource-group crypto-pilot-rg-dev \
             --name ${{ env.WEBAPP_NAME }} \
