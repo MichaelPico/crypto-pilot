@@ -99,7 +99,7 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
         }
         {
           name: 'EMAIL_SENDER_ADDRESS'
-          value: 'DoNotReply@crypto-pilot.email'
+          value: 'DoNotReply@${acsEmailDomain.properties.fromSenderDomain}'
         }
         {
           name: 'EMAIL_DOMAIN_RESOURCE_ID'
@@ -177,4 +177,4 @@ output acsDataLocation string = acs.properties.dataLocation
 output acsConnectionString string = acs.listKeys().primaryConnectionString
 output acsEmailDomainName string = acsEmailDomain.name
 output acsEmailDomainResourceId string = acsEmailDomain.id
-output emailSenderAddress string = 'DoNotReply@crypto-pilot.email'
+output emailSenderAddress string = 'DoNotReply@${acsEmailDomain.properties.fromSenderDomain}'
