@@ -258,6 +258,5 @@ jobs:
             --resource-group "crypto-pilot-rg-dev" \
             --enabled true \
             --action LoginWithAzureActiveDirectory \
-            --aad-claims-principal-id-enabled true \
             --aad-token-issuer-url "https://login.microsoftonline.com/$TENANT_ID/v2.0" \
             --aad-client-id "${{ env.FUNCTION_APP_CLIENT_ID }}"
