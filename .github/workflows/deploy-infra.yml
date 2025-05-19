@@ -55,10 +55,12 @@ jobs:
           echo "EMAIL_SENDER_ADDRESS=$(jq -r '.properties.outputs.emailSenderAddress.value' bicep_output.json)" >> $GITHUB_ENV
           echo "EMAIL_DOMAIN_RESOURCE_ID=$(jq -r '.properties.outputs.acsEmailDomainResourceId.value' bicep_output.json)" >> $GITHUB_ENV
 
+      # .NET setup with cache
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+          cache: true
 
       - name: Publish Azure Function
         run: |
@@ -70,20 +72,22 @@ jobs:
           app-name: ${{ env.FUNCTION_APP_NAME }}
           package: ./publish_output
 
+      # Check and install sqlcmd only if needed
       - name: Check if sqlcmd is installed
         id: check-sqlcmd
-        shell: pwsh
+        shell: bash
         run: |
-          if ($null -ne (Get-Command sqlcmd -ErrorAction SilentlyContinue)) {
-            echo "available=true" >> $env:GITHUB_OUTPUT
-          } else {
-            echo "available=false" >> $env:GITHUB_OUTPUT
-          }
+          if command -v sqlcmd >/dev/null 2>&1; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install sqlcmd on Linux
         if: runner.os == 'Linux' && steps.check-sqlcmd.outputs.available != 'true'
         shell: bash
         run: |
+          set -e
           curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
           sudo apt-get update
           sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 mssql-tools18
@@ -117,6 +121,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ./Crypto.Pilot.Web/package-lock.json
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: ./Crypto.Pilot.Web/node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('Crypto.Pilot.Web/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
 
       - name: Install dependencies (web)
         working-directory: ./Crypto.Pilot.Web
