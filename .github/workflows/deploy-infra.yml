@@ -216,4 +216,5 @@ jobs:
           azure_static_web_apps_api_token: ${{ env.SWA_DEPLOYMENT_TOKEN }}
           app_location: './Crypto.Pilot.Web'
           output_location: './Crypto.Pilot.Web/dist'
-          environment: 'production'
+          skip_api_build: true
+          action: 'upload'
