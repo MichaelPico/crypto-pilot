@@ -45,7 +45,8 @@ jobs:
           if [ -z "$EXISTING_WEB_APP" ]; then
             WEB_APP_ID=$(az ad app create --display-name "crypto-pilot-webapp" \
               --sign-in-audience AzureADMyOrg \
-              --web --implicit-grant-settings enableIdTokenIssuance=true \
+              --enable-id-token-issuance true \
+              --enable-access-token-issuance true \
               --web-redirect-uris "http://localhost:5173" "https://crypto-pilot-webapp.azurewebsites.net" \
               --query appId -o tsv)
           else
