@@ -157,6 +157,9 @@ resource staticWebApp 'Microsoft.Web/staticSites@2022-03-01' = {
   }
 }
 
+// Add new output for SWA deployment token
+output staticWebAppDeploymentToken string = listKeys(staticWebApp.id, staticWebApp.apiVersion).properties.apiKey
+
 output webAppName string = staticWebApp.name
 
 resource sqlServer 'Microsoft.Sql/servers@2022-02-01-preview' = {
