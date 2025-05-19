@@ -26,6 +26,12 @@ param webAppPlanName string = 'crypto-pilot-web-plan'
 @description('Name of the Web App for the frontend')
 param webAppName string = 'crypto-pilot-webapp'
 
+@description('Client ID for the Function App AAD registration')
+param functionAppClientId string
+
+@description('Client ID for the Web App AAD registration')
+param webAppClientId string
+
 resource storage 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: uniqueString(resourceGroup().id, functionAppName)
   location: location
@@ -113,7 +119,7 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
         }
         {
           name: 'CryptoPilotDatabase:Server'
-          value: '${sqlServer.name}.database.windows.net'
+          value: '${sqlServer.name}.${environment().suffixes.sqlServerHostname}'
         }
         {
           name: 'CryptoPilotDatabase:Database'
@@ -126,6 +132,56 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
         {
           name: 'CryptoPilotDatabase:Password'
           value: sqlAdminPassword
+        }
+      ]
+    }
+    httpsOnly: true
+  }
+}
+
+// App Service plan must be before web app
+resource webAppPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
+  name: webAppPlanName
+  location: location
+  sku: {
+    name: 'B1'
+    tier: 'Basic'
+  }
+  kind: 'linux'
+  properties: {
+    reserved: true
+  }
+}
+
+// Web App and its settings together
+resource webApp 'Microsoft.Web/sites@2022-09-01' = {
+  name: webAppName
+  location: location
+  kind: 'app,linux'
+  properties: {
+    serverFarmId: webAppPlan.id
+    siteConfig: {
+      linuxFxVersion: 'NODE|20-lts'
+      appSettings: [
+        {
+          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
+          value: 'true'
+        }
+        {
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
+        }
+        {
+          name: 'VITE_AZURE_AD_AUTHORITY'
+          value: 'https://${environment().authentication.loginEndpoint}${tenant().tenantId}'
+        }
+        {
+          name: 'VITE_AZURE_AD_CLIENT_ID'
+          value: webAppClientId
+        }
+        {
+          name: 'VITE_AZURE_FUNCTION_API_SCOPE'
+          value: 'api://${functionAppClientId}/user_impersonation'
         }
       ]
     }
@@ -157,9 +213,6 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2022-02-01-preview' = {
     tier: 'Basic'
     capacity: 5
   }
-  dependsOn: [
-    sqlServer
-  ]
 }
 
 resource acs 'Microsoft.Communication/communicationServices@2024-09-01-preview' = {
@@ -189,36 +242,6 @@ resource acsEmailDomain 'Microsoft.Communication/emailServices/domains@2023-03-3
   }
 }
 
-// App Service plan for the web app (Standard Linux for static SPA hosting)
-resource webAppPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
-  name: webAppPlanName
-  location: location
-  sku: {
-    name: 'B1'
-    tier: 'Basic'
-  }
-  kind: 'linux'
-  properties: {
-    reserved: true
-  }
-}
-
-// Update web app settings to use parameters instead
-param functionAppClientId string = ''
-param webAppClientId string = ''
-
-resource webAppSettings 'Microsoft.Web/sites/config@2022-09-01' = {
-  parent: webApp
-  name: 'appsettings'
-  properties: {
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'true'
-    WEBSITE_RUN_FROM_PACKAGE: '1'
-    VITE_AZURE_AD_AUTHORITY: 'https://login.microsoftonline.com/${tenant().tenantId}'
-    VITE_AZURE_AD_CLIENT_ID: webAppClientId
-    VITE_AZURE_FUNCTION_API_SCOPE: 'api://${functionAppClientId}/user_impersonation'
-  }
-}
-
 output functionAppName string = functionApp.name
 output coinGeckoBaseUrl string = coinGeckoBaseUrl
 output sqlServerName string = sqlServer.name
@@ -226,7 +249,6 @@ output sqlDatabaseName string = sqlDatabase.name
 output acsResourceName string = acs.name
 output acsLocation string = acs.location
 output acsDataLocation string = acs.properties.dataLocation
-output acsConnectionString string = acs.listKeys().primaryConnectionString
 output acsEmailDomainName string = acsEmailDomain.name
 output acsEmailDomainResourceId string = acsEmailDomain.id
 output emailSenderAddress string = 'DoNotReply@${acsEmailDomain.properties.fromSenderDomain}'
