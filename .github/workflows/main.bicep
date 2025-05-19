@@ -94,11 +94,11 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
           value: '64'
         }
         {
-          name: 'ACS_CONNECTION_STRING'
+          name: 'EmailService:ConnectionString'
           value: acs.listKeys().primaryConnectionString
         }
         {
-          name: 'EMAIL_SENDER_ADDRESS'
+          name: 'EmailService:SenderAddress'
           value: 'DoNotReply@${acsEmailDomain.properties.fromSenderDomain}'
         }
         {

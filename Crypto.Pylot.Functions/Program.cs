@@ -34,6 +34,12 @@ internal class Program
                         configuration.Bind("CryptoPilotDatabase", settings);
                     });
 
+                services.AddOptions<EmailServiceOptions>()
+                    .Configure<IConfiguration>((settings, configuration) =>
+                    {
+                        configuration.Bind("EmailService", settings);
+                    });
+
                 services.AddSingleton<DatabaseHelper>();
 
                 services.AddLogging();
