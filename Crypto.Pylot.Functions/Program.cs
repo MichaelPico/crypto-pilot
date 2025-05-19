@@ -41,6 +41,7 @@ internal class Program
                     });
 
                 services.AddSingleton<DatabaseHelper>();
+                services.AddSingleton<EmailServiceHelper>();
 
                 services.AddLogging();
             })
