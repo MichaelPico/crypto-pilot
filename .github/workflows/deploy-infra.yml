@@ -203,13 +203,14 @@ jobs:
       - name: Get Web App Publish Profile
         id: get-publish-profile
         run: |
-          if [ -z "${{ env.WEBAPP_NAME }}" ]; then
-            echo "Error: WEBAPP_NAME is not set. Cannot retrieve publish profile."
+          WEBAPP_NAME=$(jq -r '.properties.outputs.webAppName.value' bicep_output.json)
+          if [ -z "$WEBAPP_NAME" ]; then
+            echo "Error: WEBAPP_NAME is not set. Check Bicep output."
             exit 1
           fi
           PUBLISH_PROFILE=$(az webapp deployment list-publishing-profiles \
             --resource-group crypto-pilot-rg-dev \
-            --name ${{ env.WEBAPP_NAME }} \
+            --name $WEBAPP_NAME \
             --xml --output tsv)
           echo "WEBAPP_PUBLISH_PROFILE=$PUBLISH_PROFILE" >> $GITHUB_ENV
 
