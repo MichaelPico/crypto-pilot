@@ -105,6 +105,22 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'EMAIL_DOMAIN_RESOURCE_ID'
           value: acsEmailDomain.id
         }
+        {
+          name: 'CryptoPilotDatabase:Server'
+          value: '${sqlServer.name}.database.windows.net'
+        }
+        {
+          name: 'CryptoPilotDatabase:Database'
+          value: sqlDatabase.name
+        }
+        {
+          name: 'CryptoPilotDatabase:User'
+          value: sqlAdminLogin
+        }
+        {
+          name: 'CryptoPilotDatabase:Password'
+          value: sqlAdminPassword
+        }
       ]
     }
     httpsOnly: true
