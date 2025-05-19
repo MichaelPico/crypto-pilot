@@ -32,6 +32,7 @@ BEGIN
         [cryptocurrency_id] INT NOT NULL,
         [target_price] FLOAT NOT NULL,
         [notified] BIT NOT NULL DEFAULT 0,
+        [over_the_price] BIT NOT NULL DEFAULT 1,
         CONSTRAINT [PK_alerts] PRIMARY KEY ([id]),
         CONSTRAINT [FK_alerts_users] FOREIGN KEY ([user_id]) REFERENCES [crypto_pilot].[users]([id]),
         CONSTRAINT [FK_alerts_cryptocurrencies] FOREIGN KEY ([cryptocurrency_id]) REFERENCES [crypto_pilot].[cryptocurrencies]([id])

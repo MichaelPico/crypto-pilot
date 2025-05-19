@@ -119,7 +119,7 @@ WHEN NOT MATCHED THEN
             using (var conn = CreateConnection())
             {
                 await conn.OpenAsync();
-                var cmd = new SqlCommand("SELECT id, user_id, cryptocurrency_id, target_price, notified FROM crypto_pilot.alerts", conn);
+                var cmd = new SqlCommand("SELECT id, user_id, cryptocurrency_id, target_price, notified, over_the_price FROM crypto_pilot.alerts", conn);
                 using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
@@ -129,7 +129,8 @@ WHEN NOT MATCHED THEN
                         UserId = reader.GetInt32(1),
                         CryptocurrencyId = reader.GetInt32(2),
                         TargetPrice = reader.GetDouble(3),
-                        Notified = reader.GetBoolean(4)
+                        Notified = reader.GetBoolean(4),
+                        OverThePrice = reader.GetBoolean(5)
                     });
                 }
             }
@@ -146,15 +147,16 @@ MERGE crypto_pilot.alerts AS target
 USING (SELECT @Id AS id) AS source
 ON (target.id = source.id AND target.id != -1)
 WHEN MATCHED THEN 
-    UPDATE SET user_id = @UserId, cryptocurrency_id = @CryptocurrencyId, target_price = @TargetPrice, notified = @Notified
+    UPDATE SET user_id = @UserId, cryptocurrency_id = @CryptocurrencyId, target_price = @TargetPrice, notified = @Notified, over_the_price = @OverThePrice
 WHEN NOT MATCHED THEN
-    INSERT (user_id, cryptocurrency_id, target_price, notified) VALUES (@UserId, @CryptocurrencyId, @TargetPrice, @Notified);", conn);
+    INSERT (user_id, cryptocurrency_id, target_price, notified, over_the_price) VALUES (@UserId, @CryptocurrencyId, @TargetPrice, @Notified, @OverThePrice);", conn);
 
                 cmd.Parameters.AddWithValue("@Id", alert.Id);
                 cmd.Parameters.AddWithValue("@UserId", alert.UserId);
                 cmd.Parameters.AddWithValue("@CryptocurrencyId", alert.CryptocurrencyId);
                 cmd.Parameters.AddWithValue("@TargetPrice", alert.TargetPrice);
                 cmd.Parameters.AddWithValue("@Notified", alert.Notified);
+                cmd.Parameters.AddWithValue("@OverThePrice", alert.OverThePrice);
                 await cmd.ExecuteNonQueryAsync();
             }
         }

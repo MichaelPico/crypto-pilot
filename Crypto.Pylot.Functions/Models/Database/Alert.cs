@@ -7,5 +7,6 @@ namespace Crypto.Pylot.Functions.Models
         public int CryptocurrencyId { get; set; }
         public double TargetPrice { get; set; }
         public bool Notified { get; set; }
+        public bool OverThePrice { get; set; }
     }
 }
