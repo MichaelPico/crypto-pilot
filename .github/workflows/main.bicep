@@ -139,40 +139,25 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
   }
 }
 
-// App Service plan must be before web app
-resource webAppPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
-  name: webAppPlanName
+// Add Static Web App resource
+resource staticWebApp 'Microsoft.Web/staticSites@2022-03-01' = {
+  name: webAppName
   location: location
   sku: {
-    name: 'B1'
-    tier: 'Basic'
+    name: 'Standard'
+    tier: 'Standard'
   }
-  kind: 'linux'
   properties: {
-    reserved: true
+    repositoryUrl: 'https://github.com/your-repo/crypto-pilot'
+    branch: 'main'
+    buildProperties: {
+      appLocation: 'Crypto.Pilot.Web'
+      outputLocation: 'Crypto.Pilot.Web/dist'
+    }
   }
 }
 
-// Web App and its settings together
-resource webApp 'Microsoft.Web/sites@2022-09-01' = {
-  name: webAppName
-  location: location
-  kind: 'app,linux'
-  properties: {
-    serverFarmId: webAppPlan.id
-    siteConfig: {
-      linuxFxVersion: 'NODE|20-lts'
-      // Only basic settings here, environment-specific settings come from pipeline
-      appSettings: [
-        {
-          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
-          value: 'true'
-        }
-      ]
-    }
-    httpsOnly: true
-  }
-}
+output webAppName string = staticWebApp.name
 
 resource sqlServer 'Microsoft.Sql/servers@2022-02-01-preview' = {
   name: sqlServerAppName
@@ -237,6 +222,5 @@ output acsDataLocation string = acs.properties.dataLocation
 output acsEmailDomainName string = acsEmailDomain.name
 output acsEmailDomainResourceId string = acsEmailDomain.id
 output emailSenderAddress string = 'DoNotReply@${acsEmailDomain.properties.fromSenderDomain}'
-output webAppName string = webApp.name
 output functionAppClientId string = functionAppClientId
 output webAppClientId string = webAppClientId
