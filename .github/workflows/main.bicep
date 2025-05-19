@@ -139,10 +139,10 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
   }
 }
 
-// Add Static Web App resource
+// Update Static Web App resource location
 resource staticWebApp 'Microsoft.Web/staticSites@2022-03-01' = {
   name: webAppName
-  location: location
+  location: 'westeurope' // Change to a supported region
   sku: {
     name: 'Standard'
     tier: 'Standard'
