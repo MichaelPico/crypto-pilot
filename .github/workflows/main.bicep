@@ -139,24 +139,6 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
   }
 }
 
-// Update Static Web App resource location
-resource staticWebApp 'Microsoft.Web/staticSites@2022-03-01' = {
-  name: webAppName
-  location: 'westeurope' // Change to a supported region
-  sku: {
-    name: 'Standard'
-    tier: 'Standard'
-  }
-  properties: {
-    repositoryUrl: 'https://github.com/your-repo/crypto-pilot'
-    branch: 'main'
-    buildProperties: {
-      appLocation: 'Crypto.Pilot.Web'
-      outputLocation: 'Crypto.Pilot.Web/dist'
-    }
-  }
-}
-
 resource sqlServer 'Microsoft.Sql/servers@2022-02-01-preview' = {
   name: sqlServerAppName
   location: location
@@ -222,5 +204,3 @@ output acsEmailDomainResourceId string = acsEmailDomain.id
 output emailSenderAddress string = 'DoNotReply@${acsEmailDomain.properties.fromSenderDomain}'
 output functionAppClientId string = functionAppClientId
 output webAppClientId string = webAppClientId
-output staticWebAppDeploymentToken string = staticWebApp.listStaticSiteSecrets().properties.apiKey
-output webAppName string = staticWebApp.name
