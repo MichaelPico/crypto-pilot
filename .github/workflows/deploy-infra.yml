@@ -47,10 +47,13 @@ jobs:
               --sign-in-audience AzureADMyOrg \
               --enable-id-token-issuance true \
               --enable-access-token-issuance true \
-              --web-redirect-uris "http://localhost:5173" "https://crypto-pilot-webapp.azurewebsites.net" \
+              --web-redirect-uris "http://localhost:5173" \
               --query appId -o tsv)
 
             az ad sp create --id $WEB_APP_ID
+
+            WEB_APP_URL=$(az webapp show --name "crypto-pilot-webapp" --resource-group "crypto-pilot-rg-dev" --query "defaultHostName" -o tsv)
+            az ad app update --id $WEB_APP_ID --web-redirect-uris "http://localhost:5173" "https://${WEB_APP_URL}"
 
             az ad app permission add --id $WEB_APP_ID --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope
             az ad app update --id $WEB_APP_ID --identifier-uris "api://$WEB_APP_ID"
@@ -200,12 +203,13 @@ jobs:
         working-directory: ./Crypto.Pilot.Web
         run: npm ci
 
-      # Build with environment variables
       - name: Build React app
         working-directory: ./Crypto.Pilot.Web
         env:
+          VITE_BACKEND_BASE_URL: ${{ env.FUNCTION_URL }}/
+          VITE_AZURE_AD_CLIENT_ID: ${{ env.WEB_APP_CLIENT_ID }}
+          VITE_MSAL_TENANT_ID: ${{ env.TENANT_ID }}
           VITE_AZURE_AD_AUTHORITY: ${{ env.VITE_AZURE_AD_AUTHORITY }}
-          VITE_AZURE_AD_CLIENT_ID: ${{ env.VITE_AZURE_AD_CLIENT_ID }}
         run: npm run build
 
       - name: Check and Create Azure Static Web App
@@ -254,23 +258,4 @@ jobs:
             --action LoginWithAzureActiveDirectory \
             --aad-token-issuer-url "https://login.microsoftonline.com/$TENANT_ID/v2.0" \
             --aad-client-id "${{ env.FUNCTION_APP_CLIENT_ID }}"
-
-      - name: Retrieve Function App URL and Tenant ID
-        id: retrieve_env_vars
-        run: |
-          FUNCTION_URL=$(az functionapp show --name "${{ env.FUNCTION_APP_NAME }}" --resource-group "crypto-pilot-rg-dev" --query "defaultHostName" -o tsv)
-          TENANT_ID=$(az account show --query tenantId -o tsv)
-          echo "FUNCTION_URL=https://${FUNCTION_URL}" >> $GITHUB_ENV
-          echo "TENANT_ID=${TENANT_ID}" >> $GITHUB_ENV
-
-      - name: Set Web App Environment Variables
-        run: |
-          az webapp config appsettings set \
-            --name "crypto-pilot-webapp" \
-            --resource-group "crypto-pilot-rg-dev" \
-            --settings \
-              VITE_BACKEND_BASE_URL=${{ env.FUNCTION_URL }}/ \
-              VITE_AZURE_AD_CLIENT_ID=${{ env.WEB_APP_CLIENT_ID }} \
-              VITE_MSAL_TENANT_ID=${{ env.TENANT_ID }}
-
 
