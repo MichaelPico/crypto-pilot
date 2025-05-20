@@ -42,7 +42,7 @@ jobs:
       - name: Check and Create Azure Static Web App
         id: create_swa
         run: |
-          EXISTING_SWA=$(az staticwebapp show --name "crypto-pilot-webapp" --resource-group "crypto-pilot-rg-dev" --query "defaultHostname" -o tsv || echo "")
+          EXISTING_SWA=$(az staticwebapp show --name "crypto-pilot-webapp" --resource-group "crypto-pilot-rg-dev" --query "defaultHostname" -o tsv 2>/dev/null || echo "")
           if [ -z "$EXISTING_SWA" ]; then
             echo "Creating new Static Web App..."
             az staticwebapp create \
@@ -50,13 +50,21 @@ jobs:
               --resource-group "crypto-pilot-rg-dev" \
               --location "westeurope" \
               --sku "Standard" \
-              --source "https://github.com/your-repo/crypto-pilot" \
-              --branch "main" \
-              --output-location "Crypto.Pilot.Web/dist" \
-              --app-location "Crypto.Pilot.Web"
+              --tags purpose=demo environment=dev \
+              --deployment-token-timeout 10 \
+              --disable-template-repository true
+            
+            # Wait for a few seconds to ensure the app is created
+            sleep 10
+            
             SWA_URL=$(az staticwebapp show --name "crypto-pilot-webapp" --resource-group "crypto-pilot-rg-dev" --query "defaultHostname" -o tsv)
+            if [ -z "$SWA_URL" ]; then
+              echo "Error: Failed to create Static Web App"
+              exit 1
+            fi
           else
             SWA_URL=$EXISTING_SWA
+            echo "Using existing Static Web App with URL: $SWA_URL"
           fi
           echo "SWA_URL=$SWA_URL" >> $GITHUB_ENV
 
@@ -275,6 +283,9 @@ jobs:
           azure_static_web_apps_api_token: ${{ env.DEPLOYMENT_TOKEN }}
           app_location: './Crypto.Pilot.Web'
           output_location: 'dist'
+          skip_app_build: true
+          action: "upload"
           skip_api_build: true
-          action: 'upload'
+          is_static_export: true
+          production_branch: "main"
 
