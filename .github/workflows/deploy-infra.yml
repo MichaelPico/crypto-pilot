@@ -279,18 +279,21 @@ jobs:
           VITE_BACKEND_BASE_URL: ${{ env.FUNCTION_URL }}/
           VITE_AZURE_AD_CLIENT_ID: ${{ env.WEB_APP_CLIENT_ID }}
           VITE_MSAL_TENANT_ID: ${{ env.TENANT_ID }}
-        run: npm run build
+        run: |
+          npm run build:prod
+          echo "Build size analysis:"
+          du -h dist/
+          find dist/ -type f -exec ls -lh {} \;
 
       - name: Optimize build output
-        working-directory: ./Crypto.Pilot.Web
+        working-directory: ./Crypto.Pilot.Web/dist
         run: |
-          # Remove unnecessary files
-          cd dist
-          rm -rf .vite
+          rm -rf stats.html
           find . -name "*.map" -delete
+          find . -name "*.txt" -delete
           
-          # List files and their sizes for debugging
-          echo "Build output contents:"
+          # List final output
+          echo "Final build contents:"
           du -h -d 1
 
       - name: Get Static Web App Deployment Token

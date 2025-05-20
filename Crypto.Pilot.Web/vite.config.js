@@ -1,31 +1,25 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import viteCompression from 'vite-plugin-compression'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    viteCompression()
+  ],
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': ['react', 'react-dom', '@mui/material', '@azure/msal-browser', '@azure/msal-react'],
-        },
-        // Combine chunks to reduce file count
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash][extname]'
-      },
+          vendor: ['react', 'react-dom', '@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled', '@azure/msal-browser', '@azure/msal-react']
+        }
+      }
     },
-    // Minimize CSS and JS
     minify: 'esbuild',
-    cssMinify: true,
-    // Disable sourcemaps
     sourcemap: false,
-    // Clean output directory
     emptyOutDir: true,
-    // Reduce chunk size
     chunkSizeWarningLimit: 1000,
-    // Enable additional optimizations
-    target: 'esnext',
+    cssCodeSplit: false,
     assetsInlineLimit: 4096
   }
 })
