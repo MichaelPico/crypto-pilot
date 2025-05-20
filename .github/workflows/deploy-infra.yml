@@ -48,10 +48,25 @@ jobs:
               --enable-id-token-issuance true \
               --enable-access-token-issuance true \
               --web-redirect-uris "http://localhost:5173" "https://crypto-pilot-webapp.azurewebsites.net" \
+              --app-roles @c:\Users\micha\source\repos\crypto-pilot\templates\appRoles.json \
               --query appId -o tsv)
+
+            az ad sp create --id $WEB_APP_ID
+
+            az ad app permission add --id $WEB_APP_ID --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope
+            az ad app update --id $WEB_APP_ID --identifier-uris "api://$WEB_APP_ID"
+            az ad app update --id $WEB_APP_ID --set api=@c:\Users\micha\source\repos\crypto-pilot\templates\oauth2Permissions.json
+
+            OBJECT_ID=$(az ad app show --id $WEB_APP_ID --query id -o tsv)
+
+            az rest --method PATCH \
+              --uri "https://graph.microsoft.com/v1.0/applications/$OBJECT_ID" \
+              --headers "Content-Type=application/json" \
+              --body '{"api":{"requestedAccessTokenVersion":2}}'
+
+            echo "Web app registration created with permissions."
           else
-            WEB_APP_ID=$EXISTING_WEB_APP
-            echo "Web app registration already exists"
+            echo "Web app registration already exists. REMEMBER TO ADD AUTHENTICATION URLS."
           fi
           echo "WEB_APP_CLIENT_ID=$WEB_APP_ID" >> $GITHUB_ENV
 
@@ -161,10 +176,8 @@ jobs:
         run: |
           TENANT_ID=$(az account show --query tenantId -o tsv)
           AUTHORITY_URL="https://login.microsoftonline.com/$TENANT_ID"
-          API_SCOPE="api://${{ env.FUNCTION_APP_CLIENT_ID }}/user_impersonation"
           echo "VITE_AZURE_AD_AUTHORITY=$AUTHORITY_URL" >> $GITHUB_ENV
           echo "VITE_AZURE_AD_CLIENT_ID=${{ env.WEB_APP_CLIENT_ID }}" >> $GITHUB_ENV
-          echo "VITE_AZURE_FUNCTION_API_SCOPE=$API_SCOPE" >> $GITHUB_ENV
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -191,7 +204,6 @@ jobs:
         env:
           VITE_AZURE_AD_AUTHORITY: ${{ env.VITE_AZURE_AD_AUTHORITY }}
           VITE_AZURE_AD_CLIENT_ID: ${{ env.VITE_AZURE_AD_CLIENT_ID }}
-          VITE_AZURE_FUNCTION_API_SCOPE: ${{ env.VITE_AZURE_FUNCTION_API_SCOPE }}
         run: npm run build
 
       - name: Check and Create Azure Static Web App
@@ -230,26 +242,6 @@ jobs:
           skip_api_build: true
           action: 'upload'
 
-      - name: Enable Managed Identity for Web App
-        run: |
-          az webapp identity assign \
-            --name "crypto-pilot-webapp" \
-            --resource-group "crypto-pilot-rg-dev"
-
-      - name: Assign Role to Web App Managed Identity
-        run: |
-          WEB_APP_PRINCIPAL_ID=$(az webapp identity show \
-            --name "crypto-pilot-webapp" \
-            --resource-group "crypto-pilot-rg-dev" \
-            --query "principalId" -o tsv)
-          az role assignment create \
-            --assignee $WEB_APP_PRINCIPAL_ID \
-            --role "Contributor" \
-            --scope $(az functionapp show \
-              --name "${{ env.FUNCTION_APP_NAME }}" \
-              --resource-group "crypto-pilot-rg-dev" \
-              --query "id" -o tsv)
-
       - name: Configure Azure Function App Authentication
         run: |
           TENANT_ID=$(az account show --query tenantId -o tsv)
@@ -261,51 +253,4 @@ jobs:
             --aad-token-issuer-url "https://login.microsoftonline.com/$TENANT_ID/v2.0" \
             --aad-client-id "${{ env.FUNCTION_APP_CLIENT_ID }}"
 
-      - name: Expose API Scope for Function App
-        shell: bash
-        run: |
-          SCOPE_ID=$(uuidgen)
-          EXISTING_SCOPE=$(az ad app show --id "${{ env.FUNCTION_APP_CLIENT_ID }}" \
-            --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
-
-          if [ -z "$EXISTING_SCOPE" ]; then
-            echo "Adding 'user_impersonation' scope..."
-            
-            # Check if 'api' property exists
-            API_PROPERTY=$(az ad app show --id "${{ env.FUNCTION_APP_CLIENT_ID }}" --query "api" -o json)
-            if [ "$API_PROPERTY" == "null" ] || [ -z "$API_PROPERTY" ]; then
-              echo "Initializing 'api' property for the app registration..."
-              az ad app update --id "${{ env.FUNCTION_APP_CLIENT_ID }}" --set "api={\"oauth2PermissionScopes\":[]}"
-            fi
-
-            # Verify 'api' property initialization
-            API_PROPERTY=$(az ad app show --id "${{ env.FUNCTION_APP_CLIENT_ID }}" --query "api" -o json)
-            if [ "$API_PROPERTY" == "null" ] || [ -z "$API_PROPERTY" ]; then
-              echo "Error: Failed to initialize 'api' property for the app registration."
-              exit 1
-            fi
-
-            # Get existing scopes (if any)
-            EXISTING_SCOPES=$(az ad app show --id "${{ env.FUNCTION_APP_CLIENT_ID }}" \
-              --query "api.oauth2PermissionScopes" -o json)
-
-            # Append new scope
-            UPDATED_SCOPES=$(echo "$EXISTING_SCOPES" | jq \
-              --arg id "$SCOPE_ID" \
-              '. += [{
-                "adminConsentDescription": "Allow the app to access the API on behalf of the signed-in user.",
-                "adminConsentDisplayName": "Access API as user",
-                "id": $id,
-                "isEnabled": true,
-                "type": "User",
-                "value": "user_impersonation"
-              }]')
-
-            # Update the app registration
-            echo "$UPDATED_SCOPES" > scopes.json
-            az ad app update --id "${{ env.FUNCTION_APP_CLIENT_ID }}" --set "api.oauth2PermissionScopes=@scopes.json"
-            rm scopes.json
-          else
-            echo "API scope 'user_impersonation' already exists for the Function App."
-          fi
 

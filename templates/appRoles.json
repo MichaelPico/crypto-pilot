@@ -1,0 +1,12 @@
+{
+    "appRoles": [
+        {
+            "id": "EFB68536-50F7-24F4-8916-061F71BE2AE4",
+            "allowedMemberTypes": ["User"],
+            "description": "Allows the app to access Crypto Pilot on behalf of the signed-in user.",
+            "displayName": "User Access",
+            "isEnabled": true,
+            "value": "user_access"
+        }
+    ]
+}

@@ -1,13 +1,23 @@
-import { useState } from 'react'
-import './App.css'
-import CurrencySelect from './components/CurrencySelect'
+import React from "react";
+import { MsalProvider, MsalAuthenticationTemplate } from "@azure/msal-react";
+import { PublicClientApplication, InteractionType } from "@azure/msal-browser";
+import { msalConfig, graphLoginRequest } from "./AuthConfig";
+import { CssBaseline, ThemeProvider } from "@mui/material";
+import BasicLayout from "./components/BasicLayout";
 
 function App() {
+  const msalInstance = new PublicClientApplication(msalConfig);
+
   return (
-    <div>
-      <h1>Hello World</h1>
-      <CurrencySelect />
-    </div>
+    <MsalProvider instance={msalInstance}>
+      <MsalAuthenticationTemplate
+        interactionType={InteractionType.Redirect}
+        authenticationRequest={graphLoginRequest}
+      >
+        <CssBaseline />
+        <BasicLayout />
+      </MsalAuthenticationTemplate>
+    </MsalProvider>
   );
 }
 

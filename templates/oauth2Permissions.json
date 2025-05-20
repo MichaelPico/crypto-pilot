@@ -1,0 +1,14 @@
+{
+    "oauth2PermissionScopes": [
+        {
+            "id": "EFB68536-50F7-24F4-8916-061F71BE2AE4",
+            "type": "User",
+            "isEnabled": true,
+            "adminConsentDisplayName": "user_impersonation",
+            "adminConsentDescription": "Access to Crypto Pilot",
+            "value": "user_impersonation",
+            "userConsentDisplayName": "Access to Crypto Pilot",
+            "userConsentDescription": "Access to Crypto Pilot"
+        }
+    ]
+}
