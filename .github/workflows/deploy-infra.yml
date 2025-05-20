@@ -39,87 +39,87 @@ jobs:
           fi
           echo "FUNCTION_APP_CLIENT_ID=$FUNC_APP_ID" >> $GITHUB_ENV
 
-      - name: Check and Create Azure Static Web App
-        id: create_swa
-        run: |
-          # Create the Static Web App with retries
-          for i in {1..3}; do
-            echo "Attempt $i to create/verify Static Web App..."
+      # - name: Check and Create Azure Static Web App
+      #   id: create_swa
+      #   run: |
+      #     # Create the Static Web App with retries
+      #     for i in {1..3}; do
+      #       echo "Attempt $i to create/verify Static Web App..."
             
-            # Try to create the app
-            az staticwebapp create \
-              --name "crypto-pilot-webapp" \
-              --resource-group "crypto-pilot-rg-dev" \
-              --location "westeurope" \
-              --sku "Standard" \
-              --branch "main" \
-              --tags purpose=demo environment=dev || true
+      #       # Try to create the app
+      #       az staticwebapp create \
+      #         --name "crypto-pilot-webapp" \
+      #         --resource-group "crypto-pilot-rg-dev" \
+      #         --location "westeurope" \
+      #         --sku "Standard" \
+      #         --branch "main" \
+      #         --tags purpose=demo environment=dev || true
             
-            # Verify if created
-            SWA_URL=$(az staticwebapp show \
-              --name "crypto-pilot-webapp" \
-              --resource-group "crypto-pilot-rg-dev" \
-              --query "defaultHostname" \
-              --output tsv 2>/dev/null) || true
+      #       # Verify if created
+      #       SWA_URL=$(az staticwebapp show \
+      #         --name "crypto-pilot-webapp" \
+      #         --resource-group "crypto-pilot-rg-dev" \
+      #         --query "defaultHostname" \
+      #         --output tsv 2>/dev/null) || true
             
-            if [ ! -z "$SWA_URL" ]; then
-              echo "Static Web App URL: $SWA_URL"
-              echo "SWA_URL=$SWA_URL" >> $GITHUB_ENV
-              break
-            fi
+      #       if [ ! -z "$SWA_URL" ]; then
+      #         echo "Static Web App URL: $SWA_URL"
+      #         echo "SWA_URL=$SWA_URL" >> $GITHUB_ENV
+      #         break
+      #       fi
             
-            echo "Waiting before retry..."
-            sleep 30
-          done
+      #       echo "Waiting before retry..."
+      #       sleep 30
+      #     done
 
-          if [ -z "$SWA_URL" ]; then
-            echo "Failed to create Static Web App after multiple attempts"
-            exit 1
-          fi
+      #     if [ -z "$SWA_URL" ]; then
+      #       echo "Failed to create Static Web App after multiple attempts"
+      #       exit 1
+      #     fi
 
-      - name: Check and Create Web App AAD registration
-        run: |
-          EXISTING_WEB_APP=$(az ad app list --display-name "crypto-pilot-webapp" --query "[0].appId" -o tsv)
-          if [ -z "$EXISTING_WEB_APP" ]; then
-            echo "No existing Web App AAD registration found. Creating from scratch..."
-            WEB_APP_ID=$(az ad app create --display-name "crypto-pilot-webapp" \
-              --sign-in-audience AzureADMyOrg \
-              --enable-id-token-issuance true \
-              --enable-access-token-issuance true \
-              --web-redirect-uris "http://localhost:5173" \
-              --query appId -o tsv)
-            az ad sp create --id $WEB_APP_ID
+      # - name: Check and Create Web App AAD registration
+      #   run: |
+      #     EXISTING_WEB_APP=$(az ad app list --display-name "crypto-pilot-webapp" --query "[0].appId" -o tsv)
+      #     if [ -z "$EXISTING_WEB_APP" ]; then
+      #       echo "No existing Web App AAD registration found. Creating from scratch..."
+      #       WEB_APP_ID=$(az ad app create --display-name "crypto-pilot-webapp" \
+      #         --sign-in-audience AzureADMyOrg \
+      #         --enable-id-token-issuance true \
+      #         --enable-access-token-issuance true \
+      #         --web-redirect-uris "http://localhost:5173" \
+      #         --query appId -o tsv)
+      #       az ad sp create --id $WEB_APP_ID
 
-            # Set redirect URIs and patch SPA settings using the Static Web App URL
-            az ad app update --id $WEB_APP_ID --web-redirect-uris "http://localhost:5173" "https://${{ env.SWA_URL }}"
-            OBJECT_ID=$(az ad app show --id $WEB_APP_ID --query id -o tsv)
-            az rest --method patch \
-              --uri "https://graph.microsoft.com/v1.0/applications/$OBJECT_ID" \
-              --headers "{'Content-Type': 'application/json'}" \
-              --body "{\"spa\":{\"redirectUris\":[\"http://localhost:5173\",\"https://${{ env.SWA_URL }}\",\"https://${{ env.SWA_URL }}/\"]}}"
+      #       # Set redirect URIs and patch SPA settings using the Static Web App URL
+      #       az ad app update --id $WEB_APP_ID --web-redirect-uris "http://localhost:5173" "https://${{ env.SWA_URL }}"
+      #       OBJECT_ID=$(az ad app show --id $WEB_APP_ID --query id -o tsv)
+      #       az rest --method patch \
+      #         --uri "https://graph.microsoft.com/v1.0/applications/$OBJECT_ID" \
+      #         --headers "{'Content-Type': 'application/json'}" \
+      #         --body "{\"spa\":{\"redirectUris\":[\"http://localhost:5173\",\"https://${{ env.SWA_URL }}\",\"https://${{ env.SWA_URL }}/\"]}}"
 
-            # Rest of the AAD configuration...
-            az ad app permission add --id $WEB_APP_ID --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope
-            az ad app update --id $WEB_APP_ID --identifier-uris "api://$WEB_APP_ID"
-            az ad app update --id $WEB_APP_ID --set api=@templates/oauth2Permissions.json
-            az rest --method patch \
-              --uri "https://graph.microsoft.com/v1.0/applications/$OBJECT_ID" \
-              --headers "Content-Type: application/json" \
-              --body '{"api":{"requestedAccessTokenVersion":2}}'
-            echo "Granting permissions to make changes effective..."
-            az ad app permission grant --id $WEB_APP_ID --api 00000003-0000-0000-c000-000000000000 --scope "user_impersonation"
-          else
-            echo "Web app registration already exists."
-            WEB_APP_ID=$EXISTING_WEB_APP
-          fi
-          echo "WEB_APP_CLIENT_ID=$WEB_APP_ID" >> $GITHUB_ENV
+      #       # Rest of the AAD configuration...
+      #       az ad app permission add --id $WEB_APP_ID --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope
+      #       az ad app update --id $WEB_APP_ID --identifier-uris "api://$WEB_APP_ID"
+      #       az ad app update --id $WEB_APP_ID --set api=@templates/oauth2Permissions.json
+      #       az rest --method patch \
+      #         --uri "https://graph.microsoft.com/v1.0/applications/$OBJECT_ID" \
+      #         --headers "Content-Type: application/json" \
+      #         --body '{"api":{"requestedAccessTokenVersion":2}}'
+      #       echo "Granting permissions to make changes effective..."
+      #       az ad app permission grant --id $WEB_APP_ID --api 00000003-0000-0000-c000-000000000000 --scope "user_impersonation"
+      #     else
+      #       echo "Web app registration already exists."
+      #       WEB_APP_ID=$EXISTING_WEB_APP
+      #     fi
+      #     echo "WEB_APP_CLIENT_ID=$WEB_APP_ID" >> $GITHUB_ENV
 
-      - name: Debug WEB_APP_CLIENT_ID
-        run: echo "WEB_APP_CLIENT_ID is ${{ env.WEB_APP_CLIENT_ID }}"
+      # - name: Debug WEB_APP_CLIENT_ID
+      #   run: echo "WEB_APP_CLIENT_ID is ${{ env.WEB_APP_CLIENT_ID }}"
 
-      - name: Log Web App AAD Registration Info
-        run: |
-          az ad app list --display-name "crypto-pilot-webapp" --query "[0].{appId:appId, id:id, displayName:displayName}" -o json
+      # - name: Log Web App AAD Registration Info
+      #   run: |
+      #     az ad app list --display-name "crypto-pilot-webapp" --query "[0].{appId:appId, id:id, displayName:displayName}" -o json
 
 
       - name: Deploy Bicep
@@ -141,15 +141,15 @@ jobs:
         run: |
           echo "FUNCTION_APP_NAME=$(jq -r '.properties.outputs.functionAppName.value' bicep_output.json)" >> $GITHUB_ENV
 
-      - name: Get web app name from Bicep output
-        id: get_webapp_name
-        run: |
-          WEBAPP_NAME=$(jq -r '.properties.outputs.webAppName.value' bicep_output.json)
-          if [ -z "$WEBAPP_NAME" ]; then
-            echo "Error: WEBAPP_NAME is not set. Check Bicep output."
-            exit 1
-          fi
-          echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
+      # - name: Get web app name from Bicep output
+      #   id: get_webapp_name
+      #   run: |
+      #     WEBAPP_NAME=$(jq -r '.properties.outputs.webAppName.value' bicep_output.json)
+      #     if [ -z "$WEBAPP_NAME" ]; then
+      #       echo "Error: WEBAPP_NAME is not set. Check Bicep output."
+      #       exit 1
+      #     fi
+      #     echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
 
       - name: Get SQL server and database names from Bicep output
         id: get_sql_names
