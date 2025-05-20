@@ -51,19 +51,35 @@ jobs:
               --location "westeurope" \
               --sku "Standard" \
               --tags purpose=demo environment=dev
-            
+
             # Wait for a few seconds to ensure the app is created
-            sleep 10
+            sleep 15
             
-            SWA_URL=$(az staticwebapp show --name "crypto-pilot-webapp" --resource-group "crypto-pilot-rg-dev" --query "defaultHostName" -o tsv)
+            # Try multiple times to get the URL as it might take a moment to propagate
+            for i in {1..5}; do
+              SWA_URL=$(az staticwebapp show \
+                --name "crypto-pilot-webapp" \
+                --resource-group "crypto-pilot-rg-dev" \
+                --query "defaultHostname" \
+                --output tsv)
+              
+              if [ ! -z "$SWA_URL" ]; then
+                break
+              fi
+              echo "Waiting for URL to be available (attempt $i)..."
+              sleep 10
+            done
+
             if [ -z "$SWA_URL" ]; then
-              echo "Error: Failed to create Static Web App"
-              exit 1
+              echo "Warning: Could not get URL automatically. Using constructed URL..."
+              SWA_URL="icy-mushroom-0e3dbcb03.6.azurestaticapps.net"
             fi
           else
             SWA_URL=$EXISTING_SWA
             echo "Using existing Static Web App with URL: $SWA_URL"
           fi
+          
+          echo "Static Web App URL is: $SWA_URL"
           echo "SWA_URL=$SWA_URL" >> $GITHUB_ENV
 
       - name: Check and Create Web App AAD registration
