@@ -48,7 +48,6 @@ jobs:
               --enable-id-token-issuance true \
               --enable-access-token-issuance true \
               --web-redirect-uris "http://localhost:5173" "https://crypto-pilot-webapp.azurewebsites.net" \
-              --app-roles @templates/appRoles.json \
               --query appId -o tsv)
 
             az ad sp create --id $WEB_APP_ID
@@ -63,6 +62,9 @@ jobs:
               --uri "https://graph.microsoft.com/v1.0/applications/$OBJECT_ID" \
               --headers "Content-Type=application/json" \
               --body '{"api":{"requestedAccessTokenVersion":2}}'
+
+            echo "Granting permissions to make changes effective..."
+            az ad app permission grant --id $WEB_APP_ID --api 00000003-0000-0000-c000-000000000000
 
             echo "Web app registration created with permissions."
           else
