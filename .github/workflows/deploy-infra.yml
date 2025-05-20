@@ -39,6 +39,27 @@ jobs:
           fi
           echo "FUNCTION_APP_CLIENT_ID=$FUNC_APP_ID" >> $GITHUB_ENV
 
+      - name: Check and Create Azure Static Web App
+        id: create_swa
+        run: |
+          EXISTING_SWA=$(az staticwebapp show --name "crypto-pilot-webapp" --resource-group "crypto-pilot-rg-dev" --query "defaultHostname" -o tsv || echo "")
+          if [ -z "$EXISTING_SWA" ]; then
+            echo "Creating new Static Web App..."
+            az staticwebapp create \
+              --name "crypto-pilot-webapp" \
+              --resource-group "crypto-pilot-rg-dev" \
+              --location "westeurope" \
+              --sku "Standard" \
+              --source "https://github.com/your-repo/crypto-pilot" \
+              --branch "main" \
+              --output-location "Crypto.Pilot.Web/dist" \
+              --app-location "Crypto.Pilot.Web"
+            SWA_URL=$(az staticwebapp show --name "crypto-pilot-webapp" --resource-group "crypto-pilot-rg-dev" --query "defaultHostname" -o tsv)
+          else
+            SWA_URL=$EXISTING_SWA
+          fi
+          echo "SWA_URL=$SWA_URL" >> $GITHUB_ENV
+
       - name: Check and Create Web App AAD registration
         run: |
           EXISTING_WEB_APP=$(az ad app list --display-name "crypto-pilot-webapp" --query "[0].appId" -o tsv)
@@ -51,17 +72,16 @@ jobs:
               --web-redirect-uris "http://localhost:5173" \
               --query appId -o tsv)
             az ad sp create --id $WEB_APP_ID
-            WEB_APP_URL=$(az webapp show --name "crypto-pilot-webapp" --resource-group "crypto-pilot-rg-dev" --query "defaultHostName" -o tsv)
-            # Set redirect URIs and patch SPA settings for single page application
-            az ad app update --id $WEB_APP_ID --web-redirect-uris "http://localhost:5173" "https://${WEB_APP_URL}"
+
+            # Set redirect URIs and patch SPA settings using the Static Web App URL
+            az ad app update --id $WEB_APP_ID --web-redirect-uris "http://localhost:5173" "https://${{ env.SWA_URL }}"
             OBJECT_ID=$(az ad app show --id $WEB_APP_ID --query id -o tsv)
             az rest --method patch \
               --uri "https://graph.microsoft.com/v1.0/applications/$OBJECT_ID" \
               --headers "{'Content-Type': 'application/json'}" \
-              --body "{'spa': {'redirectUris': [ 'http://localhost:5173', 'https://${WEB_APP_URL}/' ]}}"
-            # Add CORS settings to function app
-            az functionapp cors add -g crypto-pilot-rg-dev -n "${{ env.FUNCTION_APP_NAME }}" --allowed-origins "https://${WEB_APP_URL}"
-            az functionapp cors add -g crypto-pilot-rg-dev -n "${{ env.FUNCTION_APP_NAME }}" --allowed-origins "http://localhost:5173"
+              --body "{\"spa\":{\"redirectUris\":[\"http://localhost:5173\",\"https://${{ env.SWA_URL }}\",\"https://${{ env.SWA_URL }}/\"]}}"
+
+            # Rest of the AAD configuration...
             az ad app permission add --id $WEB_APP_ID --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope
             az ad app update --id $WEB_APP_ID --identifier-uris "api://$WEB_APP_ID"
             az ad app update --id $WEB_APP_ID --set api=@templates/oauth2Permissions.json
@@ -71,7 +91,6 @@ jobs:
               --body '{"api":{"requestedAccessTokenVersion":2}}'
             echo "Granting permissions to make changes effective..."
             az ad app permission grant --id $WEB_APP_ID --api 00000003-0000-0000-c000-000000000000 --scope "user_impersonation"
-            echo "Web app registration created with SPA settings and CORS configured."
           else
             echo "Web app registration already exists."
             WEB_APP_ID=$EXISTING_WEB_APP
@@ -142,6 +161,11 @@ jobs:
         with:
           app-name: ${{ env.FUNCTION_APP_NAME }}
           package: ./publish_output
+
+      - name: Configure Function App CORS
+        run: |
+          az functionapp cors add -g crypto-pilot-rg-dev -n "${{ env.FUNCTION_APP_NAME }}" --allowed-origins "https://${{ env.SWA_URL }}"
+          az functionapp cors add -g crypto-pilot-rg-dev -n "${{ env.FUNCTION_APP_NAME }}" --allowed-origins "http://localhost:5173"
 
       # Check and install sqlcmd only if needed
       - name: Check if sqlcmd is installed
@@ -234,23 +258,6 @@ jobs:
           VITE_AZURE_AD_CLIENT_ID: ${{ env.WEB_APP_CLIENT_ID }}
           VITE_MSAL_TENANT_ID: ${{ env.TENANT_ID }}
         run: npm run build
-
-      - name: Check and Create Azure Static Web App
-        run: |
-          EXISTING_SWA=$(az staticwebapp show --name "crypto-pilot-webapp" --resource-group "crypto-pilot-rg-dev" --query "name" -o tsv || echo "")
-          if [ -z "$EXISTING_SWA" ]; then
-            az staticwebapp create \
-              --name "crypto-pilot-webapp" \
-              --resource-group "crypto-pilot-rg-dev" \
-              --location "westeurope" \
-              --sku "Standard" \
-              --source "https://github.com/your-repo/crypto-pilot" \
-              --branch "main" \
-              --output-location "Crypto.Pilot.Web/dist" \
-              --app-location "Crypto.Pilot.Web"
-          else
-            echo "Static Web App 'crypto-pilot-webapp' already exists."
-          fi
 
       - name: Get Static Web App Deployment Token
         id: get_swa_token
