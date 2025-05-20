@@ -4,14 +4,21 @@ import viteCompression from 'vite-plugin-compression'
 
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      jsxImportSource: '@emotion/react',
+      babel: {
+        plugins: ['@emotion/babel-plugin']
+      }
+    }),
     viteCompression()
   ],
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', '@mui/material', '@mui/icons-material',  '@azure/msal-browser', '@azure/msal-react']
+          vendor: ['react', 'react-dom'],
+          mui: ['@mui/material', '@emotion/react', '@emotion/styled', '@emotion/cache'],
+          auth: ['@azure/msal-browser', '@azure/msal-react']
         }
       }
     },
@@ -21,5 +28,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     cssCodeSplit: false,
     assetsInlineLimit: 4096
+  },
+  resolve: {
+    alias: {
+      '@': '/src'
+    }
   }
 })
