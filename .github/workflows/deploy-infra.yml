@@ -262,19 +262,35 @@ jobs:
             --aad-client-id "${{ env.FUNCTION_APP_CLIENT_ID }}"
 
       - name: Expose API Scope for Function App
+        shell: bash
         run: |
-          EXISTING_SCOPE=$(az ad app show --id ${{ env.FUNCTION_APP_CLIENT_ID }} --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
+          SCOPE_ID=$(uuidgen)
+          EXISTING_SCOPE=$(az ad app show --id "${{ env.FUNCTION_APP_CLIENT_ID }}" \
+            --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
+
           if [ -z "$EXISTING_SCOPE" ]; then
-            az ad app update --id ${{ env.FUNCTION_APP_CLIENT_ID }} --set api.oauth2PermissionScopes="[
-              {
-                \"adminConsentDescription\": \"Allow the app to access the API on behalf of the signed-in user.\",
-                \"adminConsentDisplayName\": \"Access API as user\",
-                \"id\": \"$(uuidgen)\",
-                \"isEnabled\": true,
-                \"type\": \"User\",
-                \"value\": \"user_impersonation\"
-              }
-            ]"
+            echo "Adding 'user_impersonation' scope..."
+            # Get existing scopes (if any)
+            EXISTING_SCOPES=$(az ad app show --id "${{ env.FUNCTION_APP_CLIENT_ID }}" \
+              --query "api.oauth2PermissionScopes" -o json)
+
+            # Append new scope
+            UPDATED_SCOPES=$(echo "$EXISTING_SCOPES" | jq \
+              --arg id "$SCOPE_ID" \
+              '. += [{
+                "adminConsentDescription": "Allow the app to access the API on behalf of the signed-in user.",
+                "adminConsentDisplayName": "Access API as user",
+                "id": $id,
+                "isEnabled": true,
+                "type": "User",
+                "value": "user_impersonation"
+              }]')
+
+            # Update the app registration
+            echo "$UPDATED_SCOPES" > scopes.json
+            az ad app update --id "${{ env.FUNCTION_APP_CLIENT_ID }}" --set "api.oauth2PermissionScopes=@scopes.json"
+            rm scopes.json
           else
             echo "API scope 'user_impersonation' already exists for the Function App."
           fi
+
