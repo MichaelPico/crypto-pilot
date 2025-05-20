@@ -273,9 +273,16 @@ jobs:
             
             # Check if 'api' property exists
             API_PROPERTY=$(az ad app show --id "${{ env.FUNCTION_APP_CLIENT_ID }}" --query "api" -o json)
-            if [ "$API_PROPERTY" == "null" ]; then
+            if [ "$API_PROPERTY" == "null" ] || [ -z "$API_PROPERTY" ]; then
               echo "Initializing 'api' property for the app registration..."
               az ad app update --id "${{ env.FUNCTION_APP_CLIENT_ID }}" --set "api={\"oauth2PermissionScopes\":[]}"
+            fi
+
+            # Verify 'api' property initialization
+            API_PROPERTY=$(az ad app show --id "${{ env.FUNCTION_APP_CLIENT_ID }}" --query "api" -o json)
+            if [ "$API_PROPERTY" == "null" ] || [ -z "$API_PROPERTY" ]; then
+              echo "Error: Failed to initialize 'api' property for the app registration."
+              exit 1
             fi
 
             # Get existing scopes (if any)
