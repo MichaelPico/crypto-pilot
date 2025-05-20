@@ -8,17 +8,25 @@
   ],
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/images/*.{png,jpg,gif,ico}", "/*.{css,scss,js,json,map}"]
+    "exclude": ["/images/*.{png,jpg,gif,ico}", "/*.{css,scss,js,json,map,woff,woff2}"]
   },
   "mimeTypes": {
     ".js": "text/javascript",
     ".mjs": "text/javascript",
     ".css": "text/css",
     ".json": "application/json",
-    ".svg": "image/svg+xml"
+    ".svg": "image/svg+xml",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2"
   },
   "globalHeaders": {
     "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.azurestaticapps.net https://*.azure.com https://*.microsoft.com https://login.microsoftonline.com; img-src 'self' data: https://*.azurestaticapps.net; style-src 'self' 'unsafe-inline' https://*.azurestaticapps.net; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.azurestaticapps.net",
-    "cache-control": "must-revalidate, max-age=0"
+    "cache-control": "public, max-age=31536000, immutable"
+  },
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/index.html",
+      "statusCode": 200
+    }
   }
 }
