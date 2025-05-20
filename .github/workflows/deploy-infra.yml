@@ -48,14 +48,14 @@ jobs:
               --enable-id-token-issuance true \
               --enable-access-token-issuance true \
               --web-redirect-uris "http://localhost:5173" "https://crypto-pilot-webapp.azurewebsites.net" \
-              --app-roles @c:\Users\micha\source\repos\crypto-pilot\templates\appRoles.json \
+              --app-roles @templates/appRoles.json \
               --query appId -o tsv)
 
             az ad sp create --id $WEB_APP_ID
 
             az ad app permission add --id $WEB_APP_ID --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope
             az ad app update --id $WEB_APP_ID --identifier-uris "api://$WEB_APP_ID"
-            az ad app update --id $WEB_APP_ID --set api=@c:\Users\micha\source\repos\crypto-pilot\templates\oauth2Permissions.json
+            az ad app update --id $WEB_APP_ID --set api=@templates/oauth2Permissions.json
 
             OBJECT_ID=$(az ad app show --id $WEB_APP_ID --query id -o tsv)
 
