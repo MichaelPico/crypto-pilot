@@ -273,28 +273,30 @@ jobs:
           VITE_AZURE_AD_CLIENT_ID: ${{ env.WEB_APP_CLIENT_ID }}
           VITE_MSAL_TENANT_ID: ${{ env.TENANT_ID }}
 
-      - name: Build React app
+      - name: Build and optimize React app
         working-directory: ./Crypto.Pilot.Web
         env:
           VITE_BACKEND_BASE_URL: ${{ env.FUNCTION_URL }}/
           VITE_AZURE_AD_CLIENT_ID: ${{ env.WEB_APP_CLIENT_ID }}
           VITE_MSAL_TENANT_ID: ${{ env.TENANT_ID }}
         run: |
-          npm run build:prod
-          echo "Build size analysis:"
-          du -h dist/
-          find dist/ -type f -exec ls -lh {} \;
-
-      - name: Optimize build output
-        working-directory: ./Crypto.Pilot.Web/dist
-        run: |
+          # Build and clean cache
+          npm run build
+          rm -rf node_modules/.vite
+          rm -rf dist/.vite
+          
+          # Optimize dist folder
+          cd dist
           rm -rf stats.html
           find . -name "*.map" -delete
           find . -name "*.txt" -delete
           
-          # List final output
-          echo "Final build contents:"
-          du -h -d 1
+          # Create deployment archive
+          zip -r ../dist.zip .
+          cd ..
+          
+          echo "Final archive size:"
+          du -h dist.zip
 
       - name: Get Static Web App Deployment Token
         id: get_swa_token
@@ -311,13 +313,11 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ env.DEPLOYMENT_TOKEN }}
           app_location: './Crypto.Pilot.Web'
-          output_location: 'dist'
+          output_location: 'dist.zip'
           skip_app_build: true
           action: "upload"
           skip_api_build: true
           is_static_export: true
           production_branch: "main"
-          app_artifact_location: 'dist'
-          cleanup_build_folder: true
-          max_file_size: "5242880" # 5MB limit per file
+          deployment_environment: 'production'
 
