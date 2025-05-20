@@ -11,10 +11,10 @@ export function getCurrencies() {
 export function getCoinsPrice({
   vs_currencies = 'eur',
   ids = 'bitcoin,solana',
-  include_market_cap = false,
-  include_24hr_vol = false,
-  include_24hr_change = false,
-  include_last_updated_at = false,
+  include_market_cap = true,
+  include_24hr_vol = true,
+  include_24hr_change = true,
+  include_last_updated_at = true,
   precision = 2,
 } = {}) {
   const params = new URLSearchParams({

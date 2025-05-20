@@ -8,8 +8,8 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import CurrencySelect from './CurrencySelect';
 import UserProfile from './UserProfile';
+import { CurrencyInfo } from './CurrencyInfo';
 
 function BasicLayout({ toggleTheme }) {
   const theme = useTheme();
@@ -48,7 +48,7 @@ function BasicLayout({ toggleTheme }) {
         </Toolbar>
       </AppBar>
       <Container component="main" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-        <CurrencySelect />
+        <CurrencyInfo />
       </Container>
     </Box>
   );
