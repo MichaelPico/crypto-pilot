@@ -9,10 +9,23 @@ export default defineConfig({
         manualChunks: {
           'vendor': ['react', 'react-dom', '@mui/material', '@azure/msal-browser', '@azure/msal-react'],
         },
+        // Combine chunks to reduce file count
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]'
       },
     },
-    chunkSizeWarningLimit: 1000,
+    // Minimize CSS and JS
+    minify: 'esbuild',
+    cssMinify: true,
+    // Disable sourcemaps
     sourcemap: false,
-    minify: 'esbuild'
+    // Clean output directory
+    emptyOutDir: true,
+    // Reduce chunk size
+    chunkSizeWarningLimit: 1000,
+    // Enable additional optimizations
+    target: 'esnext',
+    assetsInlineLimit: 4096
   }
 })

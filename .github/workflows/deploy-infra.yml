@@ -281,6 +281,18 @@ jobs:
           VITE_MSAL_TENANT_ID: ${{ env.TENANT_ID }}
         run: npm run build
 
+      - name: Optimize build output
+        working-directory: ./Crypto.Pilot.Web
+        run: |
+          # Remove unnecessary files
+          cd dist
+          rm -rf .vite
+          find . -name "*.map" -delete
+          
+          # List files and their sizes for debugging
+          echo "Build output contents:"
+          du -h -d 1
+
       - name: Get Static Web App Deployment Token
         id: get_swa_token
         run: |
@@ -302,8 +314,7 @@ jobs:
           skip_api_build: true
           is_static_export: true
           production_branch: "main"
-          config_file_location: './Crypto.Pilot.Web'
-          deployment_environment: 'production'
           app_artifact_location: 'dist'
           cleanup_build_folder: true
+          max_file_size: "5242880" # 5MB limit per file
 
