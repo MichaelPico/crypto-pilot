@@ -1,0 +1,24 @@
+{
+  "routes": [
+    {
+      "route": "/*",
+      "serve": "/index.html",
+      "statusCode": 200
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/images/*.{png,jpg,gif,ico}", "/*.{css,scss,js,json,map}"]
+  },
+  "mimeTypes": {
+    ".js": "text/javascript",
+    ".mjs": "text/javascript",
+    ".css": "text/css",
+    ".json": "application/json",
+    ".svg": "image/svg+xml"
+  },
+  "globalHeaders": {
+    "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.azurestaticapps.net https://*.azure.com https://*.microsoft.com https://login.microsoftonline.com; img-src 'self' data: https://*.azurestaticapps.net; style-src 'self' 'unsafe-inline' https://*.azurestaticapps.net; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.azurestaticapps.net",
+    "cache-control": "must-revalidate, max-age=0"
+  }
+}
