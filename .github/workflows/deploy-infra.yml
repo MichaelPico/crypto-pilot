@@ -176,14 +176,6 @@ jobs:
         run: |
           sqlcmd -S "$SQL_SERVER.database.windows.net" -d "$SQL_DB" -U "$SQL_USER" -P "$SQL_PASSWORD" -i "./Crypto.Pilot.Database/create-tables.sql"
 
-      # --- Begin: Deploy Crypto.Pilot.Web as Azure Static Web App ---
-      - name: Set Authentication Variables
-        run: |
-          TENANT_ID=$(az account show --query tenantId -o tsv)
-          AUTHORITY_URL="https://login.microsoftonline.com/$TENANT_ID"
-          echo "VITE_AZURE_AD_AUTHORITY=$AUTHORITY_URL" >> $GITHUB_ENV
-          echo "VITE_AZURE_AD_CLIENT_ID=${{ env.WEB_APP_CLIENT_ID }}" >> $GITHUB_ENV
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -203,13 +195,27 @@ jobs:
         working-directory: ./Crypto.Pilot.Web
         run: npm ci
 
+      - name: Retrieve Function App URL and Tenant ID
+        id: retrieve_env_vars
+        run: |
+          FUNCTION_URL=$(az functionapp show --name "${{ env.FUNCTION_APP_NAME }}" --resource-group "crypto-pilot-rg-dev" --query "defaultHostName" -o tsv)
+          TENANT_ID=$(az account show --query tenantId -o tsv)
+          echo "FUNCTION_URL=https://${FUNCTION_URL}" >> $GITHUB_ENV
+          echo "TENANT_ID=${TENANT_ID}" >> $GITHUB_ENV
+
+      - name: Ensure Web App Client ID is Set
+        run: |
+          if [ -z "${{ env.WEB_APP_CLIENT_ID }}" ]; then
+            echo "Error: WEB_APP_CLIENT_ID is not set. Ensure the Web App AAD registration step has run successfully."
+            exit 1
+          fi
+
       - name: Build React app
         working-directory: ./Crypto.Pilot.Web
         env:
           VITE_BACKEND_BASE_URL: ${{ env.FUNCTION_URL }}/
           VITE_AZURE_AD_CLIENT_ID: ${{ env.WEB_APP_CLIENT_ID }}
           VITE_MSAL_TENANT_ID: ${{ env.TENANT_ID }}
-          VITE_AZURE_AD_AUTHORITY: ${{ env.VITE_AZURE_AD_AUTHORITY }}
         run: npm run build
 
       - name: Check and Create Azure Static Web App
@@ -247,15 +253,4 @@ jobs:
           output_location: 'dist'
           skip_api_build: true
           action: 'upload'
-
-      - name: Configure Azure Function App Authentication
-        run: |
-          TENANT_ID=$(az account show --query tenantId -o tsv)
-          az webapp auth update \
-            --name "${{ env.FUNCTION_APP_NAME }}" \
-            --resource-group "crypto-pilot-rg-dev" \
-            --enabled true \
-            --action LoginWithAzureActiveDirectory \
-            --aad-token-issuer-url "https://login.microsoftonline.com/$TENANT_ID/v2.0" \
-            --aad-client-id "${{ env.FUNCTION_APP_CLIENT_ID }}"
 
