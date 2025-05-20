@@ -72,6 +72,7 @@ jobs:
             echo "Web app registration created with permissions."
           else
             echo "Web app registration already exists. REMEMBER TO ADD AUTHENTICATION URLS."
+            WEB_APP_ID=$EXISTING_WEB_APP
           fi
           echo "WEB_APP_CLIENT_ID=$WEB_APP_ID" >> $GITHUB_ENV
 
