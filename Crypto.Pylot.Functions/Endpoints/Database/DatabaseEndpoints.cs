@@ -43,9 +43,28 @@ namespace Crypto.Pylot.Functions.Endpoints.Database
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(string), Summary = "Success", Description = "User upserted.")]
         public async Task<IActionResult> UpsertUser([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "database/users")] HttpRequest req)
         {
-            var user = await System.Text.Json.JsonSerializer.DeserializeAsync<User>(req.Body);
-            await _dbHelper.UpsertUserAsync(user);
-            return new OkObjectResult("User upserted.");
+            try
+            {
+                _logger.LogInformation("UpsertUser function triggered.");
+                var user = await System.Text.Json.JsonSerializer.DeserializeAsync<User>(req.Body);
+
+                if (user == null)
+                {
+                    _logger.LogError("Invalid user object received.");
+                    return new BadRequestObjectResult("Invalid user object.");
+                }
+
+                _logger.LogInformation("Upserting user: {User}", user);
+                await _dbHelper.UpsertUserAsync(user);
+
+                _logger.LogInformation("User upserted successfully.");
+                return new OkObjectResult("User upserted.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error upserting user.");
+                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+            }
         }
 
         // CRYPTOCURRENCIES

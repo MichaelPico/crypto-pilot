@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import UserProfile from './UserProfile';
 import { CurrencyInfo } from './CurrencyInfo';
+import { AlertCreator } from './AlertCreator';
 
 function BasicLayout({ toggleTheme }) {
   const theme = useTheme();
@@ -49,6 +50,7 @@ function BasicLayout({ toggleTheme }) {
       </AppBar>
       <Container component="main" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
         <CurrencyInfo />
+        <AlertCreator />
       </Container>
     </Box>
   );
