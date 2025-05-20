@@ -1,41 +1,21 @@
 {
   "routes": [
     {
-      "route": "/assets/*",
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
       "route": "/*",
       "serve": "/index.html",
       "statusCode": 200
     }
   ],
   "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": ["/assets/*.{js,css,map}", "/images/*"]
+    "rewrite": "/index.html"
   },
   "mimeTypes": {
     ".js": "text/javascript",
-    ".mjs": "text/javascript",
     ".css": "text/css",
-    ".json": "application/json",
-    ".svg": "image/svg+xml",
-    ".woff": "font/woff",
-    ".woff2": "font/woff2"
+    ".html": "text/html",
+    ".svg": "image/svg+xml"
   },
   "globalHeaders": {
-    "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.azurestaticapps.net https://*.azure.com https://*.microsoft.com https://login.microsoftonline.com; img-src 'self' data: https://*.azurestaticapps.net; style-src 'self' 'unsafe-inline' https://*.azurestaticapps.net; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.azurestaticapps.net",
-    "cache-control": "public, max-age=31536000, immutable"
-  },
-  "responseOverrides": {
-    "404": {
-      "rewrite": "/index.html",
-      "statusCode": 200
-    }
-  },
-  "platform": {
-    "apiRuntime": "node:18"
+    "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.azurestaticapps.net https://*.microsoft.com https://login.microsoftonline.com;"
   }
 }
