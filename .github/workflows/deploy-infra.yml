@@ -42,45 +42,41 @@ jobs:
       - name: Check and Create Azure Static Web App
         id: create_swa
         run: |
-          EXISTING_SWA=$(az staticwebapp show --name "crypto-pilot-webapp" --resource-group "crypto-pilot-rg-dev" --query "defaultHostname" -o tsv 2>/dev/null || echo "")
-          if [ -z "$EXISTING_SWA" ]; then
-            echo "Creating new Static Web App..."
+          # Create the Static Web App with retries
+          for i in {1..3}; do
+            echo "Attempt $i to create/verify Static Web App..."
+            
+            # Try to create the app
             az staticwebapp create \
               --name "crypto-pilot-webapp" \
               --resource-group "crypto-pilot-rg-dev" \
               --location "westeurope" \
               --sku "Standard" \
-              --tags purpose=demo environment=dev
-
-            # Wait for a few seconds to ensure the app is created
-            sleep 15
+              --branch "main" \
+              --app-location "Crypto.Pilot.Web" \
+              --tags purpose=demo environment=dev || true
             
-            # Try multiple times to get the URL as it might take a moment to propagate
-            for i in {1..5}; do
-              SWA_URL=$(az staticwebapp show \
-                --name "crypto-pilot-webapp" \
-                --resource-group "crypto-pilot-rg-dev" \
-                --query "defaultHostname" \
-                --output tsv)
-              
-              if [ ! -z "$SWA_URL" ]; then
-                break
-              fi
-              echo "Waiting for URL to be available (attempt $i)..."
-              sleep 10
-            done
-
-            if [ -z "$SWA_URL" ]; then
-              echo "Warning: Could not get URL automatically. Using constructed URL..."
-              SWA_URL="icy-mushroom-0e3dbcb03.6.azurestaticapps.net"
+            # Verify if created
+            SWA_URL=$(az staticwebapp show \
+              --name "crypto-pilot-webapp" \
+              --resource-group "crypto-pilot-rg-dev" \
+              --query "defaultHostname" \
+              --output tsv 2>/dev/null) || true
+            
+            if [ ! -z "$SWA_URL" ]; then
+              echo "Static Web App URL: $SWA_URL"
+              echo "SWA_URL=$SWA_URL" >> $GITHUB_ENV
+              break
             fi
-          else
-            SWA_URL=$EXISTING_SWA
-            echo "Using existing Static Web App with URL: $SWA_URL"
+            
+            echo "Waiting before retry..."
+            sleep 30
+          done
+
+          if [ -z "$SWA_URL" ]; then
+            echo "Failed to create Static Web App after multiple attempts"
+            exit 1
           fi
-          
-          echo "Static Web App URL is: $SWA_URL"
-          echo "SWA_URL=$SWA_URL" >> $GITHUB_ENV
 
       - name: Check and Create Web App AAD registration
         run: |
@@ -280,23 +276,22 @@ jobs:
           VITE_AZURE_AD_CLIENT_ID: ${{ env.WEB_APP_CLIENT_ID }}
           VITE_MSAL_TENANT_ID: ${{ env.TENANT_ID }}
         run: |
-          # Build and clean cache
+          # Build with production optimization
           npm run build
-          rm -rf node_modules/.vite
-          rm -rf dist/.vite
           
-          # Optimize dist folder
+          # Clean up and optimize
+          rm -rf node_modules/.vite dist/.vite
           cd dist
-          rm -rf stats.html
           find . -name "*.map" -delete
           find . -name "*.txt" -delete
+          echo "Build contents:"
+          ls -lah
           
-          # Create deployment archive
-          zip -r ../dist.zip .
+          # Prepare for deployment
           cd ..
-          
-          echo "Final archive size:"
-          du -h dist.zip
+          tar -czf dist.tar.gz dist/
+          echo "Archive size:"
+          ls -lh dist.tar.gz
 
       - name: Get Static Web App Deployment Token
         id: get_swa_token
@@ -313,11 +308,10 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ env.DEPLOYMENT_TOKEN }}
           app_location: './Crypto.Pilot.Web'
-          output_location: 'dist.zip'
+          output_location: 'dist'
           skip_app_build: true
           action: "upload"
           skip_api_build: true
-          is_static_export: true
           production_branch: "main"
           deployment_environment: 'production'
 
