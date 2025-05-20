@@ -50,14 +50,12 @@ jobs:
               --resource-group "crypto-pilot-rg-dev" \
               --location "westeurope" \
               --sku "Standard" \
-              --tags purpose=demo environment=dev \
-              --deployment-token-timeout 10 \
-              --disable-template-repository true
+              --tags purpose=demo environment=dev
             
             # Wait for a few seconds to ensure the app is created
             sleep 10
             
-            SWA_URL=$(az staticwebapp show --name "crypto-pilot-webapp" --resource-group "crypto-pilot-rg-dev" --query "defaultHostname" -o tsv)
+            SWA_URL=$(az staticwebapp show --name "crypto-pilot-webapp" --resource-group "crypto-pilot-rg-dev" --query "defaultHostName" -o tsv)
             if [ -z "$SWA_URL" ]; then
               echo "Error: Failed to create Static Web App"
               exit 1
