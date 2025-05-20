@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Crypto.Pylot.Functions.Helpers;
 using Crypto.Pylot.Functions.Models;
 using Crypto.Pylot.Functions.Models.Options;
+using System;
 
 namespace Crypto.Pylot.Functions.Endpoints.Database
 {
