@@ -253,4 +253,22 @@ jobs:
             --aad-token-issuer-url "https://login.microsoftonline.com/$TENANT_ID/v2.0" \
             --aad-client-id "${{ env.FUNCTION_APP_CLIENT_ID }}"
 
+      - name: Retrieve Function App URL and Tenant ID
+        id: retrieve_env_vars
+        run: |
+          FUNCTION_URL=$(az functionapp show --name "${{ env.FUNCTION_APP_NAME }}" --resource-group "crypto-pilot-rg-dev" --query "defaultHostName" -o tsv)
+          TENANT_ID=$(az account show --query tenantId -o tsv)
+          echo "FUNCTION_URL=https://${FUNCTION_URL}" >> $GITHUB_ENV
+          echo "TENANT_ID=${TENANT_ID}" >> $GITHUB_ENV
+
+      - name: Set Web App Environment Variables
+        run: |
+          az webapp config appsettings set \
+            --name "crypto-pilot-webapp" \
+            --resource-group "crypto-pilot-rg-dev" \
+            --settings \
+              VITE_BACKEND_BASE_URL=${{ env.FUNCTION_URL }}/ \
+              VITE_AZURE_AD_CLIENT_ID=${{ env.WEB_APP_CLIENT_ID }} \
+              VITE_MSAL_TENANT_ID=${{ env.TENANT_ID }}
+
 
