@@ -71,10 +71,19 @@ jobs:
 
             echo "Web app registration created with permissions."
           else
-            echo "Web app registration already exists. REMEMBER TO ADD AUTHENTICATION URLS."
+            echo "Web app registration already exists."
             WEB_APP_ID=$EXISTING_WEB_APP
           fi
+
           echo "WEB_APP_CLIENT_ID=$WEB_APP_ID" >> $GITHUB_ENV
+
+      - name: Debug WEB_APP_CLIENT_ID
+        run: echo "WEB_APP_CLIENT_ID is ${{ env.WEB_APP_CLIENT_ID }}"
+
+      - name: Log Web App AAD Registration Info
+        run: |
+          az ad app list --display-name "crypto-pilot-webapp" --query "[0].{appId:appId, id:id, displayName:displayName}" -o json
+
 
       - name: Deploy Bicep
         id: deploy_bicep
