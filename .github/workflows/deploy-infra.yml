@@ -64,7 +64,7 @@ jobs:
               --body '{"api":{"requestedAccessTokenVersion":2}}'
 
             echo "Granting permissions to make changes effective..."
-            az ad app permission grant --id $WEB_APP_ID --api 00000003-0000-0000-c000-000000000000
+            az ad app permission grant --id $WEB_APP_ID --api 00000003-0000-0000-c000-000000000000 --scope "user_impersonation"
 
             echo "Web app registration created with permissions."
           else
