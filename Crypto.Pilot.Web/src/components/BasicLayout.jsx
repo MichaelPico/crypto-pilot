@@ -3,12 +3,11 @@ import {
   AppBar,
   Box,
   Container,
-  IconButton,
+  Button,
   Toolbar,
   Typography,
   useTheme,
 } from '@mui/material';
-import { Brightness4, Brightness7 } from '@mui/icons-material';
 import CurrencySelect from './CurrencySelect';
 import UserProfile from './UserProfile';
 
@@ -36,13 +35,15 @@ function BasicLayout({ toggleTheme }) {
             />
             Crypto Pilot
           </Typography>
-          <IconButton
+          <Button
             sx={{ mr: 2 }}
             onClick={toggleTheme}
             color="inherit"
+            variant="outlined"
+            size="small"
           >
-            {theme.palette.mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
-          </IconButton>
+            {theme.palette.mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </Button>
           <UserProfile />
         </Toolbar>
       </AppBar>

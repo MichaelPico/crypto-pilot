@@ -11,7 +11,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', '@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled', '@azure/msal-browser', '@azure/msal-react']
+          vendor: ['react', 'react-dom', '@mui/material', '@mui/icons-material',  '@azure/msal-browser', '@azure/msal-react']
         }
       }
     },
