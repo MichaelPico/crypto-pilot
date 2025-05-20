@@ -8,5 +8,20 @@
             },
             "enableLiveMetricsFilters": true
         }
+    },
+    "extensions": {
+        "http": {
+            "routePrefix": "",
+            "authLevel": "function"
+        }
+    },
+    "auth": {
+        "identityProviders": {
+            "azureActiveDirectory": {
+                "enabled": true,
+                "clientId": "%WEB_APP_CLIENT_ID%",
+                "issuerUrl": "https://login.microsoftonline.com/%TENANT_ID%/v2.0"
+            }
+        }
     }
 }

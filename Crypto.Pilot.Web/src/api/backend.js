@@ -26,18 +26,16 @@ async function initializeMsal() {
 }
 
 async function getAccessToken() {
-  await initializeMsal(); // Ensure MSAL is initialized before proceeding
-
-  const accounts = msalInstance.getAllAccounts();
-  if (accounts.length === 0) {
-    await msalInstance.loginPopup({ scopes: [apiScope] });
+  const response = await fetch(`${import.meta.env.VITE_BACKEND_BASE_URL}/.auth/me`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch managed identity token');
   }
-  const account = msalInstance.getAllAccounts()[0];
-  const result = await msalInstance.acquireTokenSilent({
-    account,
-    scopes: [apiScope],
-  });
-  return result.accessToken;
+  const data = await response.json();
+  const token = data[0]?.access_token;
+  if (!token) {
+    throw new Error('No access token found in managed identity response');
+  }
+  return token;
 }
 
 export async function apiFetch(path, options = {}) {

@@ -260,3 +260,21 @@ jobs:
             --action LoginWithAzureActiveDirectory \
             --aad-token-issuer-url "https://login.microsoftonline.com/$TENANT_ID/v2.0" \
             --aad-client-id "${{ env.FUNCTION_APP_CLIENT_ID }}"
+
+      - name: Expose API Scope for Function App
+        run: |
+          EXISTING_SCOPE=$(az ad app show --id ${{ env.FUNCTION_APP_CLIENT_ID }} --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
+          if [ -z "$EXISTING_SCOPE" ]; then
+            az ad app update --id ${{ env.FUNCTION_APP_CLIENT_ID }} --set api.oauth2PermissionScopes="[
+              {
+                \"adminConsentDescription\": \"Allow the app to access the API on behalf of the signed-in user.\",
+                \"adminConsentDisplayName\": \"Access API as user\",
+                \"id\": \"$(uuidgen)\",
+                \"isEnabled\": true,
+                \"type\": \"User\",
+                \"value\": \"user_impersonation\"
+              }
+            ]"
+          else
+            echo "API scope 'user_impersonation' already exists for the Function App."
+          fi
